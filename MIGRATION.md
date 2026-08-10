@@ -1,58 +1,58 @@
-# Calibration Studio extraction from DDC
+# Calibration Studio extraction from DDC — completed
 
 Source repository: `altrudev/ddc`  
 Source product: `apps/calibration-studio/`  
-Source release: `v0.10.1`  
-Source canonical DDC commit: `b67ffbaef360b9ccb680196653dcbabcb7fbd5bb`
+Historical source release: `v0.10.1`  
+Source DDC commit: `b67ffbaef360b9ccb680196653dcbabcb7fbd5bb`  
+Canonical dedicated-repository preview: `v0.11.0-alpha.0`  
+Canonical release target commit: `121b8bad20f8face80b0594073e1b85ac38210d2`
 
-## Goal
+## Result
 
-Make this repository the canonical home of Calibration Studio while preserving v0.10.1 behavior and keeping proprietary DDC/Crystalline internals private.
+The migration completed on 2026-08-10. `altrudev/Calibration-Studio` is the canonical active product repository.
 
-## Migration gates
+The extraction preserved the Calibration Studio product boundary while keeping proprietary DDC/Crystalline internals private. Product-owned functionality was moved here; private DDC closure/topology/constraint-island/successor-state implementation was not copied.
 
-The embedded DDC copy MUST NOT be removed until this repository reproduces the source release gates.
+## Completed parity gates
 
-Required parity:
+- [x] Web/PWA adapter
+- [x] Browser Extension adapter
+- [x] API/Backend adapter
+- [x] CLI adapter
+- [x] Game adapter
+- [x] Calibration lifecycle
+- [x] historical first-bad tracing
+- [x] scoped repair verification
+- [x] continuous calibration gates
+- [x] privacy-profiled bundles
+- [x] release manifests and detached Ed25519 verification
+- [x] Intent IR public contract and deterministic validation
+- [x] standalone Windows x64 packaging
+- [x] standalone Linux x64 packaging
+- [x] standalone macOS x64 packaging
+- [x] standalone macOS arm64 packaging
+- [x] pinned runtime verification
+- [x] security/adversarial suite
+- [x] public/private boundary guard
+- [x] active public schema catalog
+- [x] canonical GitHub prerelease publication
+- [x] cross-repository DDC self-calibration
 
-- Web/PWA adapter
-- Browser Extension adapter
-- API/Backend adapter
-- CLI adapter
-- Game adapter
-- Calibration lifecycle
-- historical first-bad tracing
-- scoped repair verification
-- continuous calibration gates
-- privacy-profiled bundles
-- release manifests and detached signature verification
-- Intent IR public contract and deterministic validation
-- standalone Windows x64 packaging
-- standalone Linux x64 packaging
-- standalone macOS x64 packaging
-- standalone macOS arm64 packaging
-- pinned runtime verification
-- security audit/adversarial suite
-- public/private boundary guard
+## DDC relationship after cutover
 
-## Extraction rule
+DDC no longer carries an active duplicate Calibration Studio product tree.
 
-Copy product-owned code, tests, schemas, samples, UI, documentation and release machinery.
+DDC keeps only its side of the integration boundary:
 
-Do NOT copy private DDC implementation details from the DDC-side private boundary. Where current product code imports an internal DDC helper, replace that dependency with the versioned provider boundary documented in `docs/DDC-INTEGRATION.md` or with a product-owned transparent implementation when the behavior is part of Calibration Studio itself.
+1. DDC-owned calibration plans, compatibility pins and approved baselines;
+2. exact pinned canonical Calibration Studio revision for self-calibration CI;
+3. any optional private DDC provider implementation, kept exclusively in DDC;
+4. private Crystalline/DDC runtime and research.
 
-## Versioning
+Calibration Studio remains an external observer/assurance tool. DDC remains authoritative over DDC-owned expectations and baselines.
 
-`v0.10.1` remains the historical release built from DDC.
+## Provenance
 
-The first canonical release from this repository should be `v0.11.0` (preview/candidate) after parity and migration gates pass. Do not call it 1.0 solely because of the repository move.
+Historical v0.10.1 source remains recoverable through DDC Git history. It was intentionally not copied into a second active archive tree after the canonical external repository was validated.
 
-## DDC cleanup after parity
-
-Once `v0.11.0` is validated from this repository:
-
-1. freeze the old DDC `apps/calibration-studio/` tree as provenance or remove it from active source;
-2. keep only `integrations/calibration-studio/` in DDC;
-3. pin the supported Calibration Studio protocol/release identity;
-4. run Calibration Studio against DDC in DDC CI;
-5. retain DDC's private provider implementation, if used, exclusively in DDC.
+Repository migration did not promote the product to 1.0. The v0.11 line remains preview/candidate while production distribution work such as Windows publisher signing and macOS notarization is still outstanding.
