@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration-ddc-provider-0.1.schema.json",
+  "title": "Calibration Studio optional DDC provider exchange",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "request_id", "operation", "project", "payload"],
+  "properties": {
+    "protocol": {"const": "altru-calibration-ddc-provider/0.1"},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "operation": {
+      "type": "string",
+      "enum": ["analyze", "intent-verify", "repair-scope"]
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "commit": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "payload": {"type": "object"}
+  }
+}
