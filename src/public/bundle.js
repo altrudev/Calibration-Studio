@@ -7,6 +7,13 @@ const {assertBaselineIntegrity,assertRegressionIntegrity,assertHistoryIntegrity,
 const {assertTraceIntegrity}=require("./historical-tracing");
 const {assertRepairScopeIntegrity,assertRepairRunIntegrity}=require("./repair-scope");
 const {assertGateIntegrity}=require("./continuous");
+const {digest:intentDigest}=require("./intent-ir");
+
+const INTENT_PREFIX=Object.freeze({
+  "altru-intent-contract/0.1":"INT",
+  "altru-intent-delta/0.1":"IDELTA",
+  "altru-intent-verification/0.1":"IVER"
+});
 
 function stable(value){if(Array.isArray(value))return value.map(stable);if(value&&typeof value==="object")return Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])]));return value;}
 function canonical(value){return JSON.stringify(stable(value));}
@@ -24,6 +31,15 @@ function assertBundleFileRecords(files){
   if(!Array.isArray(files)||!files.length)throw new Error("bundle manifest must contain at least one file");const seen=new Set();
   for(const item of files){if(!item||typeof item!=="object")throw new Error("bundle manifest file record is invalid");const rel=assertSafeBundlePath(item.path);if(seen.has(rel))throw new Error(`bundle manifest contains duplicate path '${rel}'`);seen.add(rel);if(!Number.isInteger(item.size)||item.size<0)throw new Error(`bundle file '${rel}' has invalid size`);if(typeof item.sha256!=="string"||!/^[a-f0-9]{64}$/i.test(item.sha256))throw new Error(`bundle file '${rel}' has invalid sha256`);}
 }
+function assertIntentArtifact(value){
+  const prefix=INTENT_PREFIX[value?.schema];
+  if(!prefix)throw new Error(`Unsupported Intent artifact schema '${value?.schema||"unknown"}'`);
+  const core={...value};delete core.id;delete core.fingerprint;
+  const fingerprint=intentDigest(core);
+  if(value.fingerprint!==fingerprint)throw new Error("Intent artifact fingerprint mismatch");
+  if(value.id!==`${prefix}-${fingerprint.slice(0,12).toUpperCase()}`)throw new Error("Intent artifact id mismatch");
+  return value;
+}
 
 function verifyArtifact(value){
   switch(value?.schema){
@@ -36,13 +52,14 @@ function verifyArtifact(value){
     case"altru-calibration-repair-scope/0.1":return assertRepairScopeIntegrity(value);
     case"altru-calibration-repair-run/0.1":return assertRepairRunIntegrity(value);
     case"altru-calibration-gate/0.1":return assertGateIntegrity(value);
+    case"altru-intent-contract/0.1":case"altru-intent-delta/0.1":case"altru-intent-verification/0.1":return assertIntentArtifact(value);
     default:throw new Error(`Unsupported Calibration Studio artifact schema '${value?.schema||"unknown"}'`);
   }
 }
 
 function artifactSummary(value){
   const project=value.project?.name||value.current?.project?.name||value.regression?.current?.project?.name||null;
-  const status=value.calibration?.status||value.regression?.status||value.history?.status||value.repair?.status||value.trace?.status||value.decision?.status||null;
+  const status=value.calibration?.status||value.regression?.status||value.history?.status||value.repair?.status||value.trace?.status||value.decision?.status||value.status||null;
   return{schema:value.schema,id:value.id||value.run?.id||null,fingerprint:value.fingerprint||null,project,status};
 }
 
@@ -90,4 +107,4 @@ function verifyBundle(bundleDir){
   return{schema:"altru-calibration-bundle-verification/0.1",status:"verified",bundle_id:manifest.id,fingerprint:manifest.fingerprint,privacy_profile:manifest.privacy_profile,file_count:manifest.files.length,artifact_count:manifest.source_artifacts.length};
 }
 
-module.exports={createBundle,verifyBundle,verifyArtifact,assertBundleManifest,assertSafeBundlePath,sha256};
+module.exports={createBundle,verifyBundle,verifyArtifact,assertBundleManifest,assertSafeBundlePath,assertIntentArtifact,sha256};
