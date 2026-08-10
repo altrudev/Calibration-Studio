@@ -1,0 +1,5 @@
+"use strict";
+const REASON_CODES = Object.freeze({behavior:Object.freeze({code:"CAL-BEH-001",title:"Behavior mismatch"}),permissions:Object.freeze({code:"CAL-AUTH-004",title:"Permission or authority mismatch"}),state:Object.freeze({code:"CAL-STATE-014",title:"State transition mismatch"}),resources:Object.freeze({code:"CAL-RES-006",title:"Resource mismatch or drift"}),security:Object.freeze({code:"CAL-SEC-011",title:"Security invariant mismatch"}),environment:Object.freeze({code:"CAL-ENV-003",title:"Environment-dependent mismatch"}),timing:Object.freeze({code:"CAL-TIME-008",title:"Timing or recurrence instability"}),history:Object.freeze({code:"CAL-HIST-005",title:"History or lineage mismatch"}),drift:Object.freeze({code:"CAL-DRIFT-001",title:"Behavioral drift"})});
+const PUBLIC_DOMAINS = Object.freeze(["behavior","permissions","state","resources","security","environment","timing","history"]);
+function reasonFor(domain){return REASON_CODES[domain]||REASON_CODES.behavior;}
+module.exports={REASON_CODES,PUBLIC_DOMAINS,reasonFor};
