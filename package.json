@@ -2,11 +2,20 @@
   "name": "@altrudev/calibration-studio",
   "version": "0.11.0-alpha.0",
   "private": true,
-  "description": "Standalone Calibration Studio extraction with public product core and optional private DDC provider boundary.",
+  "description": "Standalone Calibration Studio with universal adapters, deterministic lifecycle, Intent IR, release integrity, and an optional private DDC provider boundary.",
   "license": "UNLICENSED",
+  "bin": {
+    "calibrate": "bin/calibrate-entry.js",
+    "ddc-intent": "bin/intent.js"
+  },
   "scripts": {
     "check": "node scripts/check-source.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "runtime:install-browser": "node src/runtime/install-browser.js",
+    "runtime:verify-browser": "node src/runtime/verify-browser.js",
+    "standalone:stage": "node src/release/stage-standalone.js",
+    "adapters": "node bin/calibrate-entry.js adapters",
+    "version:product": "node bin/calibrate-entry.js version"
   },
   "dependencies": {
     "playwright": "1.62.1",
