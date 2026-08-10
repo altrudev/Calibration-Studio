@@ -90,9 +90,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
-          build\standalone\calibrate.cmd version > build\staged-version.json
-          build\standalone\calibrate.cmd adapters > build\staged-adapters.json
-          build\standalone\ddc-intent.cmd compile --intent build\standalone\app\samples\intent-happyhr-ui.json > build\staged-intent.json
+          call build\standalone\calibrate.cmd version > build\staged-version.json
+          call build\standalone\calibrate.cmd adapters > build\staged-adapters.json
+          call build\standalone\ddc-intent.cmd compile --intent build\standalone\app\samples\intent-happyhr-ui.json > build\staged-intent.json
       - name: Launch staged package on Unix
         if: runner.os != 'Windows'
         shell: bash
