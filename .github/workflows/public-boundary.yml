@@ -17,6 +17,10 @@ jobs:
         with:
           node-version: "24"
           package-manager-cache: false
+      - name: Install exact pinned dependency graph
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Syntax and extraction tests
         run: |
           npm run check
