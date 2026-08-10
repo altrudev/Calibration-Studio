@@ -1,0 +1,20 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://altru.dev/calibration/schemas/calibration-standalone-0.11.schema.json",
+  "title":"Calibration Studio standalone release info 0.11",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["schema","product","version","platform","arch","node","browser","dependency_lock","launcher","runtime_download_during_calibration"],
+  "properties":{
+    "schema":{"const":"altru-calibration-standalone/0.11"},
+    "product":{"const":"Calibration Studio"},
+    "version":{"type":"string","pattern":"^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"},
+    "platform":{"type":"string","minLength":1},
+    "arch":{"type":"string","minLength":1},
+    "node":{"type":"object","additionalProperties":false,"required":["version","bundled","path"],"properties":{"version":{"type":"string","minLength":1},"bundled":{"const":true},"path":{"type":"string","minLength":1}}},
+    "browser":{"type":"object","required":["playwright_version","chromium_installed","browser_version","browser_store"],"properties":{"playwright_version":{"type":"string","minLength":1},"chromium_installed":{"const":true},"browser_version":{"type":"string","minLength":1},"browser_store":{"type":"string","minLength":1}},"additionalProperties":false},
+    "dependency_lock":{"const":"app/package-lock.json"},
+    "launcher":{"type":"string","minLength":1},
+    "runtime_download_during_calibration":{"const":false}
+  }
+}

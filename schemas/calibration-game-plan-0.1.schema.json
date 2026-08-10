@@ -1,0 +1,15 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://altru.dev/schemas/calibration-game-plan-0.1.schema.json",
+  "title":"Calibration Studio Game Plan 0.1",
+  "type":"object",
+  "required":["protocol","bridge","scenarios"],
+  "properties":{
+    "protocol":{"const":"calibration-game-plan/0.1"},
+    "target_url":{"type":["string","null"]},
+    "allow_remote_target":{"type":"boolean"},
+    "bridge":{"type":"object","required":["script"],"properties":{"global":{"type":"string"},"script":{"type":"string","minLength":1},"protocol":{"type":"string"},"require_ephemeral":{"type":"boolean"}},"additionalProperties":false},
+    "scenarios":{"type":"array","minItems":1,"items":{"type":"object","required":["id","checks"],"properties":{"id":{"type":"string","minLength":1},"title":{"type":"string"},"seed":{"type":["integer","null"]},"repetitions":{"type":"integer","minimum":1,"maximum":10000},"timeout_ms":{"type":"integer","minimum":100,"maximum":300000},"checks":{"type":"array","minItems":1,"items":{"type":"object","required":["id","expected"],"properties":{"id":{"type":"string","minLength":1},"domain":{"enum":["behavior","permissions","state","resources","security","environment","timing","history"]},"kind":{"enum":["behavior","permissions","state","resources","security","environment","timing","history"]},"title":{"type":"string"},"pointer":{"type":"string"},"expected":{"type":["string","number","boolean","null"]},"required":{"type":"boolean"},"allow_drift":{"type":"boolean"},"allowDrift":{"type":"boolean"},"severity":{"enum":["low","medium","high","critical"]},"investigate":{"type":"string"}},"additionalProperties":false}}},"additionalProperties":false}}
+  },
+  "additionalProperties":false
+}
