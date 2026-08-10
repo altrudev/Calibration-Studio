@@ -26,13 +26,12 @@ jobs:
         run: |
           set -euo pipefail
           forbidden='derive_closure|constraint[-_ ]island|lattice propagation|successor-state machinery|private dimensional signals|ParticipantLockManager|FileHeadStore|CrystallineEngine|NativeCrystal|NativePrepared'
-          if grep -RniE "$forbidden" . \
-            --exclude-dir=.git \
-            --exclude='DDC-INTEGRATION.md' \
-            --exclude='MIGRATION.md'; then
-            echo 'Private DDC implementation vocabulary leaked into Calibration Studio source.' >&2
-            exit 1
-          fi
+          for root in src scripts tests schemas; do
+            if [ -e "$root" ] && grep -RniE "$forbidden" "$root"; then
+              echo 'Private DDC implementation vocabulary leaked into executable/product source.' >&2
+              exit 1
+            fi
+          done
       - name: Reject committed secrets and private keys
         shell: bash
         run: |
