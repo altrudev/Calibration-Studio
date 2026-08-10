@@ -1,4 +1,4 @@
-name: Public boundary
+name: Extraction boundary
 
 on:
   push:
@@ -9,10 +9,18 @@ permissions:
   contents: read
 
 jobs:
-  public-boundary:
+  core-and-boundary:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Syntax and extraction tests
+        run: |
+          npm run check
+          npm test
       - name: Reject private DDC implementation leakage
         shell: bash
         run: |
@@ -33,6 +41,3 @@ jobs:
             echo 'Secret/key material must not be committed.' >&2
             exit 1
           fi
-      - name: Validate provider schemas
-        run: |
-          node -e "for (const f of ['schemas/ddc-provider-0.1.schema.json','schemas/ddc-provider-result-0.1.schema.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
