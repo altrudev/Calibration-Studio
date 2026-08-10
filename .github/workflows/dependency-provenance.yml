@@ -1,0 +1,47 @@
+name: Dependency provenance
+
+on:
+  push:
+    branches: ["main", "migration/**", "feature/**", "release/**"]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/dependency-provenance.yml"
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/dependency-provenance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install exact graph without lifecycle scripts
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify exact audited runtime pins
+        run: |
+          node - <<'NODE'
+          const pkg=require('./package.json');
+          const lock=require('./package-lock.json');
+          const playwright=require('./node_modules/playwright/package.json');
+          const yaml=require('./node_modules/yaml/package.json');
+          const pty=require('./node_modules/node-pty/package.json');
+          if(pkg.engines?.node!=='>=24') throw new Error('unsupported Node floor');
+          if(playwright.version!=='1.62.1') throw new Error(`unexpected Playwright ${playwright.version}`);
+          if(yaml.version!=='2.9.0') throw new Error(`unexpected yaml ${yaml.version}`);
+          if(pty.version!=='1.1.0') throw new Error(`unexpected node-pty ${pty.version}`);
+          if(lock.lockfileVersion!==3) throw new Error('unexpected lockfile version');
+          NODE
+      - name: Verify registry signatures and attestations
+        run: npm audit signatures

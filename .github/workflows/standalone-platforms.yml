@@ -1,0 +1,124 @@
+name: Standalone four-platform migration gate
+
+on:
+  push:
+    branches: ["main", "migration/**", "release/**"]
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "ui/**"
+      - "docs/**"
+      - "schemas/**"
+      - "samples/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/standalone-platforms.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "ui/**"
+      - "docs/**"
+      - "schemas/**"
+      - "samples/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/standalone-platforms.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            package: linux-x64
+            expected_arch: x64
+          - os: windows-latest
+            package: windows-x64
+            expected_arch: x64
+          - os: macos-15-intel
+            package: macos-x64
+            expected_arch: x64
+          - os: macos-15
+            package: macos-arm64
+            expected_arch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.18.1"
+          package-manager-cache: false
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          node -e "if(process.arch!=='${{ matrix.expected_arch }}') throw new Error('expected ${{ matrix.expected_arch }}, got '+process.arch); console.log(process.platform, process.arch, process.version)"
+      - name: Install exact dependency graph
+        shell: bash
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild node-pty --foreground-scripts
+      - name: Install and verify pinned Chromium
+        shell: bash
+        run: |
+          npm run runtime:install-browser
+          npm run runtime:verify-browser
+      - name: Stage standalone package
+        shell: bash
+        run: |
+          node -e "require('node:fs').rmSync('build',{recursive:true,force:true});require('node:fs').mkdirSync('build/standalone',{recursive:true})"
+          node src/release/stage-standalone.js --output build/standalone > build/stage-result.json
+          node src/release/size-report.js build/standalone > build/size.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const s=JSON.parse(fs.readFileSync('build/stage-result.json','utf8'));
+          const z=JSON.parse(fs.readFileSync('build/size.json','utf8'));
+          if(s.status!=='staged') throw new Error('standalone stage failed');
+          if(s.release.node.version!=='v24.18.1') throw new Error(`wrong Node ${s.release.node.version}`);
+          if(s.release.arch!==process.arch) throw new Error(`staged arch ${s.release.arch} != runner ${process.arch}`);
+          if(s.release.browser.playwright_version!=='1.62.1'||s.release.browser.chromium_installed!==true) throw new Error('browser runtime mismatch');
+          if(!s.manifest.id.startsWith('RELEASE-')) throw new Error('release identity missing');
+          if(!(z.total_bytes>0)) throw new Error('size report missing');
+          NODE
+      - name: Launch staged package on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call build\standalone\calibrate.cmd version > build\staged-version.json
+          call build\standalone\calibrate.cmd adapters > build\staged-adapters.json
+          call build\standalone\ddc-intent.cmd compile --intent build\standalone\app\samples\intent-happyhr-ui.json > build\staged-intent.json
+      - name: Launch staged package on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          ./build/standalone/calibrate version > build/staged-version.json
+          ./build/standalone/calibrate adapters > build/staged-adapters.json
+          ./build/standalone/ddc-intent compile --intent build/standalone/app/samples/intent-happyhr-ui.json > build/staged-intent.json
+      - name: Verify staged probes
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const v=JSON.parse(fs.readFileSync('build/staged-version.json','utf8'));
+          const a=JSON.parse(fs.readFileSync('build/staged-adapters.json','utf8'));
+          const i=JSON.parse(fs.readFileSync('build/staged-intent.json','utf8'));
+          if(v.version!=='0.11.0-alpha.0') throw new Error('staged version mismatch');
+          if(!a.adapters.some(x=>x.id==='cli'&&x.status==='candidate')) throw new Error('staged adapters missing');
+          if(i.schema!=='altru-intent-contract/0.1') throw new Error('staged Intent probe failed');
+          NODE
+      - name: Upload staged migration package
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-studio-v0.11-alpha-${{ matrix.package }}
+          path: |
+            build/standalone
+            build/stage-result.json
+            build/size.json
+          if-no-files-found: error
+          retention-days: 7

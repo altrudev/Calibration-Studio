@@ -1,0 +1,10 @@
+{
+  "schema": "calibration-observation-set/0.2",
+  "started_at": "2026-08-09T07:00:00Z",
+  "completed_at": "2026-08-09T07:00:01Z",
+  "observations": [
+    {"id":"save","value":true,"evidence":[{"type":"state","summary":"save succeeded"}],"environment":{"runtime":"fixture"}},
+    {"id":"startup","value":1000,"evidence":[{"type":"timing","summary":"startup duration"}],"environment":{"runtime":"fixture"}},
+    {"id":"mode","value":"known-good-mode","evidence":[{"type":"behavior","summary":"mode observed"}],"environment":{"runtime":"fixture"}}
+  ]
+}

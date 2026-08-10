@@ -1,0 +1,46 @@
+name: Extraction boundary
+
+on:
+  push:
+    branches: ["main", "migration/**", "feature/**", "release/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core-and-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install exact pinned dependency graph
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Syntax and extraction tests
+        run: |
+          npm run check
+          npm test
+      - name: Reject private DDC implementation leakage
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden='derive_closure|constraint[-_ ]island|lattice propagation|successor-state machinery|private dimensional signals|ParticipantLockManager|FileHeadStore|CrystallineEngine|NativeCrystal|NativePrepared'
+          for root in src scripts tests schemas; do
+            if [ -e "$root" ] && grep -RniE "$forbidden" "$root"; then
+              echo 'Private DDC implementation vocabulary leaked into executable/product source.' >&2
+              exit 1
+            fi
+          done
+      - name: Reject committed secrets and private keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f \( -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name '.env' \) -not -path './.git/*' | grep -q .; then
+            echo 'Secret/key material must not be committed.' >&2
+            exit 1
+          fi

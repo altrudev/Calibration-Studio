@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/calibration/schemas/calibration-cli-plan-0.5.schema.json",
+  "title": "Calibration Studio CLI Plan 0.5",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "command"],
+  "$defs": {
+    "env": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean"]}},
+    "readiness": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "type": {"enum": ["delay", "http", "tcp"]},
+        "delay_ms": {"type": "integer", "minimum": 0},
+        "url": {"type": "string"},
+        "expected_status": {"oneOf": [{"type": "integer"}, {"type": "array", "items": {"type": "integer"}}]},
+        "host": {"type": "string"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "timeout_ms": {"type": "integer", "minimum": 1}
+      }
+    },
+    "service": {
+      "type": "object", "additionalProperties": false, "required": ["id", "command"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1},
+        "args": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
+        "cwd": {"type": "string"},
+        "env": {"$ref": "#/$defs/env"},
+        "inherit_env": {"type": "boolean", "default": false},
+        "ready": {"$ref": "#/$defs/readiness"}
+      }
+    },
+    "sandbox": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "mode": {"enum": ["workspace", "container"], "default": "workspace"},
+        "runtime": {"enum": ["auto", "docker", "podman"], "default": "auto"},
+        "image": {"type": "string"},
+        "network": {"enum": ["none", "bridge"], "default": "none"},
+        "read_only_root": {"type": "boolean", "default": true}
+      }
+    }
+  },
+  "properties": {
+    "protocol": {"const": "calibration-cli-plan/0.5"},
+    "id": {"type": "string", "minLength": 1},
+    "command": {"type": "string", "minLength": 1},
+    "args": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
+    "cwd": {"type": "string"},
+    "env": {"$ref": "#/$defs/env"},
+    "inherit_env": {"type": "boolean", "default": false},
+    "timeout_ms": {"type": "integer", "minimum": 1},
+    "max_output_bytes": {"type": "integer", "minimum": 1024},
+    "include_output": {"type": "boolean", "default": false},
+    "watch": {"type": "array", "items": {"type": "string"}},
+    "expected_exit_codes": {"type": "array", "items": {"type": "integer"}},
+    "max_duration_ms": {"type": "integer", "minimum": 1},
+    "expected_changed_paths": {"type": "array", "items": {"type": "string"}},
+    "expect_stderr_empty": {"type": "boolean"},
+    "workspace_copy": {"type": "boolean", "default": true},
+    "stdin": {"type": "string"},
+    "tty": {"type": "boolean", "default": false},
+    "terminal": {"type": "object", "additionalProperties": false, "properties": {"cols": {"type": "integer", "minimum": 20}, "rows": {"type": "integer", "minimum": 5}}},
+    "services": {"type": "array", "items": {"$ref": "#/$defs/service"}},
+    "sandbox": {"$ref": "#/$defs/sandbox"}
+  }
+}

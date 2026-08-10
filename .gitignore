@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Packaged runtimes / browsers
+runtime/node/
+runtime/browser/
+.playwright/
+
+# Build and release staging
+build/
+dist/
+stage/
+out/
+release/stage/
+*.zip
+*.tar.gz
+*.tgz
+
+# Calibration outputs
+calibration-*.json
+baseline*.json
+regression*.json
+repair*.json
+trace*.json
+*.bundle/
+
+# Secrets and signing material
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
