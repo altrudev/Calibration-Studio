@@ -1,0 +1,7 @@
+"use strict";
+const { BRANDING }=require("./branding");
+const ALLOWED_FINDING_KEYS=Object.freeze(["id","checkId","code","title","domain","severity","summary","expected","observed","evidence","reproduction","likelyOrigin","recommendedInvestigation","repairStatus","confidence","driftPercent"]);
+function publicFinding(f){const o={};for(const k of ALLOWED_FINDING_KEYS)if(f[k]!==undefined)o[k]=f[k];return o;}
+function scoreFromFindings(findings){if(!findings.length)return 100;const w={low:2,medium:6,high:14,critical:25};return Math.max(0,Number((100-findings.reduce((s,f)=>s+(w[f.severity]||6),0)).toFixed(1)));}
+function createPublicReport({project,settings,findings,run}){const safe=findings.map(publicFinding);return{schema:"altru-calibration-report/0.1",product:BRANDING.product,branding:BRANDING,engine:{technology:"DDC",implementation:"proprietary",boundary:"public-diagnostics-only"},project:{name:project.name,github_url:project.githubUrl,github_source:project.githubSource,repository_url:project.repositoryUrl,git_branch:project.gitBranch,git_commit:project.gitCommit},run:{id:run.id,started_at:run.startedAt,completed_at:run.completedAt,profile:settings.profile,edition:settings.edition,analysis_depth:settings.analysisDepth,repetitions:settings.repetitions},calibration:{score:scoreFromFindings(safe),finding_count:safe.length,status:safe.some(f=>["critical","high"].includes(f.severity))?"fractured":safe.length?"review":"calibrated"},findings:safe};}
+module.exports={ALLOWED_FINDING_KEYS,createPublicReport,publicFinding,scoreFromFindings};
