@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration-ddc-provider-result-0.1.schema.json",
+  "title": "Calibration Studio optional DDC provider result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "request_id", "status", "evidence"],
+  "properties": {
+    "protocol": {"const": "altru-calibration-ddc-provider-result/0.1"},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "status": {"type": "string", "enum": ["ok", "review", "rejected", "error"]},
+    "reason_codes": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 128},
+      "uniqueItems": true
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "summary"],
+        "properties": {
+          "type": {"type": "string", "minLength": 1, "maxLength": 128},
+          "summary": {"type": "string", "maxLength": 4096},
+          "fingerprint": {"type": ["string", "null"], "maxLength": 256}
+        }
+      }
+    }
+  }
+}
