@@ -1,0 +1,14 @@
+{
+  "name": "@altrudev/calibration-studio",
+  "version": "0.11.0-alpha.0",
+  "private": true,
+  "description": "Standalone Calibration Studio extraction with public product core and optional private DDC provider boundary.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "check": "node scripts/check-source.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
