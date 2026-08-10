@@ -1,0 +1,18 @@
+{
+  "protocol": "ddc-intent/0.1",
+  "intent_id": "happyhr.ui",
+  "version": 1,
+  "label": "HappyHR UI intent",
+  "scope": {"id": "happyhr.ui", "parents": []},
+  "clauses": [
+    {"id":"preserve-capability","kind":"invariant","target":"product.capability_regression","operator":"eq","value":false,"severity":"hard","priority":1,"confidence":1,"provenance":{"type":"human","ref":null,"statement":"Keep it robust and full featured."}},
+    {"id":"mobile-overflow","kind":"acceptance","target":"ui.horizontal_overflow","operator":"eq","value":false,"severity":"hard","priority":1,"confidence":1,"provenance":{"type":"human","ref":null,"statement":"Make it easy to use on mobile."}},
+    {"id":"simple-navigation","kind":"goal","target":"ui.primary_navigation_depth","operator":"lte","value":3,"severity":"hard","priority":0.95,"confidence":0.9,"provenance":{"type":"derived","ref":"human-request","statement":"Simplify usage without removing capability."}},
+    {"id":"futuristic-ui","kind":"preference","target":"ui.futuristic_score","operator":"gte","value":0.7,"severity":"soft","priority":0.7,"confidence":0.65,"provenance":{"type":"human","ref":null,"statement":"Make the UI futuristic."}}
+  ],
+  "edges": [
+    {"from":"preserve-capability","to":"simple-navigation","relation":"constrains"},
+    {"from":"simple-navigation","to":"mobile-overflow","relation":"affects"}
+  ],
+  "metadata": {"purpose":"Intent IR v0.1 example only; no model-generated interpretation is trusted without deterministic validation."}
+}
