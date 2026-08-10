@@ -1,0 +1,9 @@
+{
+  "schema": "calibration-contract/0.2",
+  "product": "Lifecycle Fixture",
+  "checks": [
+    {"id":"save","title":"Save commits","domain":"state","expected":true,"severity":"high"},
+    {"id":"startup","title":"Startup time","domain":"timing","expected":1000,"allowDrift":true,"required":false},
+    {"id":"mode","title":"Mode marker","domain":"behavior","expected":"known-good-mode"}
+  ]
+}
