@@ -1,0 +1,89 @@
+name: Runtime smoke
+
+on:
+  push:
+    branches: ["main", "migration/**", "feature/**", "release/**"]
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/runtime-smoke.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "bin/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/runtime-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-browser-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install exact dependency graph
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install and verify pinned Chromium
+        run: |
+          npm run runtime:install-browser
+          npm run runtime:verify-browser
+          node bin/calibrate-entry.js runtime --output /tmp/runtime.json
+          node - <<'NODE'
+          const r=require('/tmp/runtime.json');
+          if(r.browser.playwright_version!=='1.62.1'||r.browser.chromium_installed!==true) throw new Error('pinned browser runtime not ready');
+          NODE
+      - name: Real Web/PWA capture through standalone CLI
+        shell: bash
+        run: |
+          mkdir -p /tmp/calibration-web
+          cat >/tmp/calibration-web/index.html <<'HTML'
+          <!doctype html><html><head><meta name="viewport" content="width=device-width"><link rel="manifest" href="/manifest.webmanifest"></head><body><script>navigator.serviceWorker.register('/sw.js')</script>fixture</body></html>
+          HTML
+          cat >/tmp/calibration-web/manifest.webmanifest <<'JSON'
+          {"name":"Runtime Fixture","start_url":"/","display":"standalone","icons":[{"src":"/icon.png","sizes":"192x192","type":"image/png"}]}
+          JSON
+          cat >/tmp/calibration-web/sw.js <<'JS'
+          self.addEventListener('fetch',()=>{});
+          JS
+          node - <<'NODE' >/tmp/calibration-web.log 2>&1 &
+          const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+          const root='/tmp/calibration-web';
+          http.createServer((req,res)=>{const file=req.url==='/'?'index.html':req.url.slice(1);const p=path.join(root,file);if(!fs.existsSync(p)){res.statusCode=404;return res.end('missing')}if(file.endsWith('.webmanifest'))res.setHeader('content-type','application/manifest+json');res.end(fs.readFileSync(p));}).listen(18788,'127.0.0.1');
+          NODE
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 50); do node -e "fetch('http://127.0.0.1:18788/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break; sleep .1; done
+          node bin/calibrate-entry.js capture --type web-pwa --url http://127.0.0.1:18788/ --offline-probe --output /tmp/web-observations.json
+          node - <<'NODE'
+          const o=require('/tmp/web-observations.json');
+          if(!o.observations.some(x=>x.id==='page-loads'&&x.value===true)) throw new Error('real Web/PWA capture failed');
+          if(!o.observations.some(x=>x.id==='manifest-present'&&x.value===true)) throw new Error('manifest capture failed');
+          if(o.observations[0].environment.runtime!=='pinned-local') throw new Error('capture was not pinned-local');
+          NODE
+      - name: Real MV3 extension capture through standalone CLI
+        shell: bash
+        run: |
+          mkdir -p /tmp/calibration-extension
+          cat >/tmp/calibration-extension/manifest.json <<'JSON'
+          {"manifest_version":3,"name":"Runtime Extension Fixture","version":"1.0.0","permissions":["storage"],"background":{"service_worker":"service-worker.js"},"options_page":"options.html"}
+          JSON
+          cat >/tmp/calibration-extension/service-worker.js <<'JS'
+          chrome.runtime.onInstalled.addListener(()=>chrome.storage.local.set({ready:true}));
+          JS
+          echo '<!doctype html><title>Options</title>fixture' >/tmp/calibration-extension/options.html
+          node bin/calibrate-entry.js capture --type browser-extension --project /tmp/calibration-extension --output /tmp/extension-observations.json
+          node - <<'NODE'
+          const o=require('/tmp/extension-observations.json');
+          if(!o.observations.some(x=>x.id==='extension-loads'&&x.value===true)) throw new Error('real extension capture failed');
+          if(o.observations[0].environment.runtime!=='pinned-local') throw new Error('extension capture was not pinned-local');
+          NODE
