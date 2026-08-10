@@ -50,7 +50,7 @@ jobs:
       - name: Stage standalone package
         run: |
           mkdir /tmp/calibration-standalone
-          npm run standalone:stage -- --output /tmp/calibration-standalone > /tmp/stage-result.json
+          node src/release/stage-standalone.js --output /tmp/calibration-standalone > /tmp/stage-result.json
           node src/release/size-report.js /tmp/calibration-standalone > /tmp/size.json
           node - <<'NODE'
           const s=require('/tmp/stage-result.json');
