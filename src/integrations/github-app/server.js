@@ -3,6 +3,7 @@
 const fs = require("node:fs");
 const http = require("node:http");
 const { createGitHubWebhookProcessor, WebhookError } = require("./processor");
+const { createHttpWorkerDispatcher } = require("./dispatch");
 
 function readRequestBody(request, maxBytes) {
   return new Promise((resolve, reject) => {
@@ -10,11 +11,7 @@ function readRequestBody(request, maxBytes) {
     let size = 0;
     request.on("data", chunk => {
       size += chunk.length;
-      if (size > maxBytes) {
-        reject(new WebhookError("Webhook body exceeds configured size limit", 413));
-        request.destroy();
-        return;
-      }
+      if (size > maxBytes) { reject(new WebhookError("Webhook body exceeds configured size limit", 413)); request.destroy(); return; }
       chunks.push(chunk);
     });
     request.on("end", () => resolve(Buffer.concat(chunks)));
@@ -26,20 +23,22 @@ function loadGithubAppConfigFromEnv(env = process.env) {
   const appId = env.CALIBRATION_GITHUB_APP_ID;
   const webhookSecret = env.CALIBRATION_GITHUB_WEBHOOK_SECRET;
   let privateKeyPem = env.CALIBRATION_GITHUB_PRIVATE_KEY || null;
-  if (!privateKeyPem && env.CALIBRATION_GITHUB_PRIVATE_KEY_FILE) {
-    privateKeyPem = fs.readFileSync(env.CALIBRATION_GITHUB_PRIVATE_KEY_FILE, "utf8");
-  }
+  if (!privateKeyPem && env.CALIBRATION_GITHUB_PRIVATE_KEY_FILE) privateKeyPem = fs.readFileSync(env.CALIBRATION_GITHUB_PRIVATE_KEY_FILE, "utf8");
   if (privateKeyPem?.includes("\\n")) privateKeyPem = privateKeyPem.replace(/\\n/g, "\n");
-  if (!appId || !webhookSecret || !privateKeyPem) {
-    throw new Error("CALIBRATION_GITHUB_APP_ID, CALIBRATION_GITHUB_WEBHOOK_SECRET, and a GitHub App private key are required");
-  }
+  if (!appId || !webhookSecret || !privateKeyPem) throw new Error("CALIBRATION_GITHUB_APP_ID, CALIBRATION_GITHUB_WEBHOOK_SECRET, and a GitHub App private key are required");
+  const workerUrl = env.CALIBRATION_GITHUB_WORKER_URL || null;
+  const workerSecret = env.CALIBRATION_GITHUB_WORKER_SECRET || null;
+  if (Boolean(workerUrl) !== Boolean(workerSecret)) throw new Error("CALIBRATION_GITHUB_WORKER_URL and CALIBRATION_GITHUB_WORKER_SECRET must be configured together");
   return {
     appId,
     webhookSecret,
     privateKeyPem,
     host: env.CALIBRATION_GITHUB_HOST || "127.0.0.1",
     port: Number(env.PORT || env.CALIBRATION_GITHUB_PORT || 8787),
-    maxWebhookBytes: Number(env.CALIBRATION_GITHUB_MAX_WEBHOOK_BYTES || 2 * 1024 * 1024)
+    maxWebhookBytes: Number(env.CALIBRATION_GITHUB_MAX_WEBHOOK_BYTES || 2 * 1024 * 1024),
+    workerUrl,
+    workerSecret,
+    workerDispatchTimeoutMs: Number(env.CALIBRATION_GITHUB_WORKER_DISPATCH_TIMEOUT_MS || 5000)
   };
 }
 
@@ -56,7 +55,6 @@ function createGithubAppServer({ processor, maxWebhookBytes = 2 * 1024 * 1024 })
       response.end(JSON.stringify({ error: "not_found" }));
       return;
     }
-
     try {
       const rawBody = await readRequestBody(request, maxWebhookBytes);
       const result = await processor({ headers: request.headers, rawBody });
@@ -71,8 +69,9 @@ function createGithubAppServer({ processor, maxWebhookBytes = 2 * 1024 * 1024 })
   });
 }
 
-function startGithubAppServer({ appId, privateKeyPem, webhookSecret, host = "127.0.0.1", port = 8787, maxWebhookBytes, fetchImpl, runner } = {}) {
-  const processor = createGitHubWebhookProcessor({ appId, privateKeyPem, webhookSecret, fetchImpl, runner });
+function startGithubAppServer({ appId, privateKeyPem, webhookSecret, host = "127.0.0.1", port = 8787, maxWebhookBytes, fetchImpl, runner, workerUrl, workerSecret, workerDispatchTimeoutMs = 5000, workerFetchImpl } = {}) {
+  const dispatcher = workerUrl ? createHttpWorkerDispatcher({ url: workerUrl, secret: workerSecret, fetchImpl: workerFetchImpl || globalThis.fetch, timeoutMs: workerDispatchTimeoutMs }) : null;
+  const processor = createGitHubWebhookProcessor({ appId, privateKeyPem, webhookSecret, fetchImpl, runner, dispatcher });
   const server = createGithubAppServer({ processor, maxWebhookBytes });
   return new Promise((resolve, reject) => {
     server.once("error", reject);

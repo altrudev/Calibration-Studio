@@ -18,6 +18,7 @@
     "gate:runtime": "node scripts/validate-local.js --runtime",
     "gate:standalone": "node scripts/validate-local.js --standalone",
     "github-app": "node bin/github-app.js",
+    "github-worker": "node bin/github-worker.js",
     "runtime:install-browser": "node src/runtime/install-browser.js",
     "runtime:verify-browser": "node src/runtime/verify-browser.js",
     "standalone:stage": "node src/release/stage-standalone.js",
