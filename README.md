@@ -49,7 +49,24 @@ See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE
 - deterministic release manifests and detached Ed25519 verification;
 - pinned Playwright/Chromium runtime boundary;
 - self-contained four-platform staging/release pipeline;
-- local zero-remote-runtime artifact viewer.
+- local zero-remote-runtime artifact viewer;
+- GitHub App preview using signed webhooks, installation-scoped REST API access and GitHub Checks without GitHub Actions.
+
+## GitHub App integration preview
+
+Calibration Studio now has a dedicated GitHub App boundary for pull-request intake. It verifies signed GitHub webhooks, authenticates as the installed GitHub App, reads changed-file metadata and publishes a Check Run against the PR head commit.
+
+The webhook process **does not execute pull-request code**. Deep behavioral calibration must be attached through a separate isolated worker boundary. The default development runner returns a neutral intake check until that worker is configured.
+
+Recommended preview permissions are deliberately narrow: Metadata read, Pull requests read and Checks write. See [`docs/GITHUB-APP.md`](docs/GITHUB-APP.md).
+
+Start the local adapter with:
+
+```bash
+npm run github-app
+```
+
+This integration uses the GitHub REST API directly and does not require GitHub Actions.
 
 ## DDC self-calibration
 
@@ -65,7 +82,7 @@ DDC commit
   -> repair verification
 ```
 
-Calibration Studio supplies observation and verification capabilities; DDC remains the authority over its own declared expectations and approved baseline. DDC CI pins an exact canonical Calibration Studio revision rather than importing this repository as source.
+Calibration Studio supplies observation and verification capabilities; DDC remains the authority over its own declared expectations and approved baseline. DDC validation pins an exact canonical Calibration Studio revision rather than importing this repository as source.
 
 ## Development checks
 

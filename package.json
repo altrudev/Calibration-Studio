@@ -11,6 +11,7 @@
   "scripts": {
     "check": "node scripts/check-source.js",
     "test": "node --test tests/*.test.js",
+    "github-app": "node bin/github-app.js",
     "runtime:install-browser": "node src/runtime/install-browser.js",
     "runtime:verify-browser": "node src/runtime/verify-browser.js",
     "standalone:stage": "node src/release/stage-standalone.js",
