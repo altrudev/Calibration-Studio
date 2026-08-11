@@ -39,6 +39,9 @@ function openBrowser(url) {
   }
   try {
     const child = spawn(command, args, { detached: true, stdio: "ignore", shell: false, windowsHide: true });
+    child.once("error", () => {
+      console.log(`Browser could not be opened automatically. Open ${url} manually.`);
+    });
     child.unref();
     return true;
   } catch {
