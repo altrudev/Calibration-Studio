@@ -2,6 +2,27 @@
 
 Calibration Studio v0.11 is a standalone software-assurance product. It no longer imports private DDC implementation source.
 
+## Interactive product boundary
+
+```text
+OS launcher / npm start
+        ↓
+first-run bootstrap
+        ↓
+Calibration Studio local service
+        │
+        ├── serves local UI assets
+        ├── GET /api/health
+        ├── GET /api/status
+        └── POST /api/command
+                ↓
+        allow-listed argument mapper
+                ↓
+        Calibration Core / adapters
+```
+
+The local service binds to loopback only. It does not expose an arbitrary shell. Studio commands are mapped to known Calibration operations and are executed through explicit argv with `shell:false`.
+
 ## Public product flow
 
 ```text
@@ -51,25 +72,13 @@ Calibration Studio may call a local private DDC provider through:
 - `altru-calibration-ddc-provider/0.1`
 - `altru-calibration-ddc-provider-result/0.1`
 
-Provider output is allow-listed to public reason/evidence fields. Private DDC topology, DTC, constraint-island and successor-state machinery are outside the product contract.
+Provider output is allow-listed to public reason/evidence fields. Private DDC implementation machinery is outside the product contract.
 
 The product remains fully functional without a DDC provider.
 
-## DDC reverse integration
-
-DDC treats Calibration Studio as an external tool. DDC owns its plans and approved baselines; Calibration Studio supplies observation, lifecycle comparison, continuous gating, historical tracing and repair verification.
-
-This avoids a source-level circular dependency:
-
-```text
-DDC private runtime  ──optional provider──▶ Calibration Studio
-       │
-       └──── invokes external Calibration Studio for self-calibration ────┘
-```
-
 ## Runtime boundary
 
-Browser adapters use exact Playwright `1.62.1` and its locally installed/persisted Chromium runtime. Browser executables are acquired during controlled setup/packaging, never implicitly during calibration.
+Browser adapters use exact Playwright `1.62.1` and its locally installed Chromium runtime. The explicit first-run launcher may acquire that runtime during setup; calibration actions do not download browsers implicitly.
 
 CLI execution uses explicit argv with `shell:false`. It defaults to a copied workspace and temporary HOME. Full parent-environment inheritance requires both plan intent and operator authority.
 
@@ -77,4 +86,4 @@ Historical tracing uses detached temporary Git worktrees and a minimal environme
 
 ## Artifact integrity
 
-Lifecycle, trace, repair, Intent, bundle and release artifacts use deterministic SHA-256 fingerprints and stable public IDs. The local viewer independently verifies supported artifact fingerprints before rendering them as valid evidence.
+Lifecycle, trace, repair, Intent and bundle artifacts use deterministic SHA-256 fingerprints and stable public IDs. The local viewer independently verifies supported artifact fingerprints before rendering them as valid evidence.

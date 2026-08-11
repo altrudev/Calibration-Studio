@@ -28,6 +28,16 @@ npm run gate:all
 
 `gate:supply-chain` requires registry/network access. Browser runtime installation is explicit; calibration itself does not silently download browser executables.
 
+## Studio launch validation
+
+The visual Studio is started with:
+
+```bash
+npm start
+```
+
+or one of the OS launchers under `launch/`. The launcher may install missing locked dependencies and the pinned Chromium runtime as an explicit first-run setup action before starting the loopback-only Studio service.
+
 ## Optional GitHub workflow
 
 One GitHub workflow is retained only as a **manual operator tool** using `workflow_dispatch`:

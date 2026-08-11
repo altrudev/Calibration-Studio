@@ -1,1 +1,96 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Calibration Studio</title><link rel="stylesheet" href="styles.css"></head><body><main><header><div><h1>Calibration Studio</h1><p>Behavioral diagnostics and persistent intent verification for software.</p></div><label class="load">Open artifact <input id="artifact-file" type="file" accept="application/json,.json"></label></header><section id="empty" class="panel"><h2>Open a Calibration Studio Artifact</h2><p>Open a calibration report, immutable baseline, continuous gate, regression result, longitudinal history, historical trace, repair scope, repair verification, scoped repair-run result, Intent Contract, Intent Delta, or Intent Verification artifact. Files are read locally in your browser.</p></section><section id="dashboard" hidden><div class="grid"><article class="panel"><span id="metric-label" class="kicker">Artifact</span><strong id="metric-value">—</strong><span id="metric-status">—</span></article><article class="panel"><span id="context-label" class="kicker">Project</span><strong id="context-value">—</strong><a id="context-link" hidden target="_blank" rel="noopener noreferrer">GitHub project</a></article><article class="panel"><span id="count-label" class="kicker">Items</span><strong id="count-value">—</strong><span id="count-meta">—</span></article></div><section class="panel"><h2 id="detail-title">Details</h2><div id="detail-content"></div></section></section><footer><strong>Built with DDC</strong> · Developed by Altru.dev · © 2026 Altru.dev. All rights reserved.</footer></main><script src="intent-renderer.js"></script><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Calibration Studio</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="studio-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">ALTRU.DEV</div>
+        <h1>Calibration Studio</h1>
+        <p>Declared → Observed → Fracture → Lineage → Repair → Re-observe</p>
+      </div>
+      <div class="status-cluster" aria-label="Studio status">
+        <span id="core-chip" class="chip pending">Core · connecting</span>
+        <span id="browser-chip" class="chip pending">Browser · checking</span>
+        <span id="version-chip" class="chip">v—</span>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Calibration Studio sections">
+      <button class="tab active" data-tab="run" type="button">Run</button>
+      <button class="tab" data-tab="artifact" type="button">Artifact Viewer</button>
+    </nav>
+
+    <section id="run-view" class="view">
+      <div class="run-grid">
+        <form id="studio-form" class="panel control-panel">
+          <div class="section-heading">
+            <div>
+              <span class="kicker">Connected local execution</span>
+              <h2>Start a Calibration operation</h2>
+            </div>
+            <button id="refresh-status" class="ghost" type="button">Refresh</button>
+          </div>
+
+          <div class="form-grid">
+            <label class="field"><span>Operation</span><select id="operation" name="operation">
+              <option value="inspect">Inspect project</option><option value="discover">Discover contract</option><option value="capture">Capture observations</option><option value="run">Calibrate</option><option value="baseline">Create baseline</option><option value="compare">Compare to baseline</option><option value="gate">Continuous gate</option><option value="trace">Trace first bad</option><option value="repair-scope">Repair scope</option><option value="repair">Verify repair</option><option value="repair-run">Repair rerun</option><option value="runtime">Runtime status</option><option value="adapters">List adapters</option><option value="version">Product version</option>
+            </select></label>
+            <label class="field conditional" data-field="type"><span>Product type</span><select id="type" name="type"><option value="web-pwa">Web / PWA</option><option value="browser-extension">Browser extension</option><option value="api">API / backend</option><option value="cli">CLI</option><option value="game">Game / interactive app</option></select></label>
+            <label class="field wide conditional" data-field="project"><span>Project path</span><input id="project" name="project" type="text" autocomplete="off" placeholder="C:\Projects\MyProduct or /home/me/project"></label>
+            <label class="field wide conditional" data-field="url"><span>Target URL</span><input id="url" name="url" type="url" autocomplete="off" placeholder="http://127.0.0.1:8080"></label>
+            <label class="field wide conditional" data-field="targetUrl"><span>Extension target URL</span><input id="targetUrl" name="targetUrl" type="url" autocomplete="off" placeholder="Optional page to open while testing the extension"></label>
+            <label class="field conditional" data-field="product"><span>Product name</span><input id="product" name="product" type="text" autocomplete="off" placeholder="Optional override"></label>
+            <label class="field wide conditional" data-field="plan"><span>Plan JSON path</span><input id="plan" name="plan" type="text" autocomplete="off" placeholder="/path/to/plan.json"></label>
+            <label class="field wide conditional" data-field="contract"><span>Contract JSON path</span><input id="contract" name="contract" type="text" autocomplete="off" placeholder="/path/to/contract.json"></label>
+            <label class="field wide conditional" data-field="observations"><span>Observations JSON path</span><input id="observations" name="observations" type="text" autocomplete="off" placeholder="/path/to/observations.json"></label>
+            <label class="field wide conditional" data-field="baseline"><span>Baseline JSON path</span><input id="baseline" name="baseline" type="text" autocomplete="off" placeholder="/path/to/baseline.json"></label>
+            <label class="field wide conditional" data-field="before"><span>Before regression path</span><input id="before" name="before" type="text" autocomplete="off" placeholder="/path/to/regression-before.json"></label>
+            <label class="field wide conditional" data-field="after"><span>After regression path</span><input id="after" name="after" type="text" autocomplete="off" placeholder="/path/to/regression-after.json"></label>
+            <label class="field wide conditional" data-field="scope"><span>Repair scope path</span><input id="scope" name="scope" type="text" autocomplete="off" placeholder="/path/to/scope.json"></label>
+            <label class="field wide conditional" data-field="settings"><span>Settings JSON path</span><input id="settings" name="settings" type="text" autocomplete="off" placeholder="Optional settings.json"></label>
+            <label class="field conditional" data-field="label"><span>Baseline label</span><input id="label" name="label" type="text" autocomplete="off" placeholder="known-good"></label>
+            <label class="field conditional" data-field="mode"><span>Repair scope mode</span><select id="mode" name="mode"><option value="domain-neighborhood">Domain neighborhood</option><option value="minimal">Minimal</option><option value="full">Full</option></select></label>
+          </div>
+
+          <details id="execution-boundaries" class="boundaries conditional" data-field="boundaries">
+            <summary>Execution permissions</summary>
+            <div class="check-grid">
+              <label><input id="confirmExecution" type="checkbox"> Confirm controlled execution</label>
+              <label><input id="headed" type="checkbox"> Show browser while capturing</label>
+              <label><input id="offlineProbe" type="checkbox"> Include offline probe</label>
+              <label><input id="allowEffectful" type="checkbox"> Allow effectful API plan</label>
+              <label><input id="allowRemoteTarget" type="checkbox"> Allow remote game target</label>
+              <label><input id="allowPersistentState" type="checkbox"> Allow persistent game state</label>
+              <label><input id="allowInheritEnv" type="checkbox"> Allow CLI environment inheritance</label>
+            </div>
+          </details>
+
+          <div class="run-actions"><button id="run-button" class="primary" type="submit">Run operation</button><span id="run-hint">Commands execute locally through Calibration Core.</span></div>
+        </form>
+
+        <aside class="panel result-panel">
+          <div class="section-heading"><div><span class="kicker">Live result</span><h2 id="result-title">Ready</h2></div><span id="result-badge" class="result-badge neutral">Idle</span></div>
+          <div class="result-metrics"><div><span>Exit</span><strong id="result-exit">—</strong></div><div><span>Duration</span><strong id="result-duration">—</strong></div></div>
+          <pre id="live-result" class="result-code">Select an operation and run it. Results stay on this machine.</pre>
+          <div class="result-actions"><button id="download-result" class="ghost" type="button" disabled>Download JSON</button><button id="view-result" class="ghost" type="button" disabled>Open in viewer</button></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="artifact-view" class="view" hidden>
+      <section class="panel artifact-intro"><div><span class="kicker">Evidence viewer</span><h2>Open a Calibration Studio artifact</h2><p>Artifact verification and rendering stay local in your browser.</p></div><label class="load">Open artifact <input id="artifact-file" type="file" accept="application/json,.json"></label></section>
+      <section id="empty" class="panel"><p>Open a calibration report, baseline, gate, regression result, history, trace, repair artifact, or supported Intent artifact.</p></section>
+      <section id="dashboard" hidden><div class="grid"><article class="panel"><span id="metric-label" class="kicker">Artifact</span><strong id="metric-value">—</strong><span id="metric-status">—</span></article><article class="panel"><span id="context-label" class="kicker">Project</span><strong id="context-value">—</strong><a id="context-link" hidden target="_blank" rel="noopener noreferrer">GitHub project</a></article><article class="panel"><span id="count-label" class="kicker">Items</span><strong id="count-value">—</strong><span id="count-meta">—</span></article></div><section class="panel"><h2 id="detail-title">Details</h2><div id="detail-content"></div></section></section>
+    </section>
+
+    <footer><strong>Built with DDC</strong> · Developed by Altru.dev · © 2026 Altru.dev. All rights reserved.</footer>
+  </main>
+  <script src="intent-renderer.js"></script><script src="app.js"></script><script src="studio.js"></script>
+</body>
+</html>

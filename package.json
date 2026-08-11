@@ -2,13 +2,16 @@
   "name": "@altrudev/calibration-studio",
   "version": "0.11.0-alpha.0",
   "private": true,
-  "description": "Calibration Studio core with universal adapters, deterministic lifecycle, Intent IR, release integrity, local web UI, and an optional private DDC provider boundary.",
+  "description": "Calibration Studio core with universal adapters, deterministic lifecycle, Intent IR, release integrity, a locally served visual Studio, and an optional private DDC provider boundary.",
   "license": "UNLICENSED",
   "bin": {
     "calibrate": "bin/calibrate-entry.js",
     "ddc-intent": "bin/intent.js"
   },
   "scripts": {
+    "start": "node bin/studio-launch.js",
+    "studio": "node bin/studio-launch.js",
+    "studio:server": "node bin/studio.js --no-open",
     "check": "node scripts/check-source.js",
     "test": "node --test tests/*.test.js",
     "gate": "node scripts/validate-local.js",
