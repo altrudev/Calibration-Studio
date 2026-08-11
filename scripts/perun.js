@@ -109,6 +109,8 @@ function staticBoundaryAudit() {
 
   for (const file of walk("launch")) {
     const value = text(file);
+    assert(value.includes("15m"), "PERUN-LAUNCHER-IDLE", `${rel(file)} must retain the 15-minute Codespace idle timeout`);
+    assert(value.includes("168h"), "PERUN-LAUNCHER-RETENTION", `${rel(file)} must retain the 7-day Codespace retention period`);
     const dangerousBootstrap = [
       /curl[^\n|]*\|\s*(?:sh|bash)\b/i,
       /wget[^\n|]*\|\s*(?:sh|bash)\b/i,
@@ -124,7 +126,7 @@ function staticBoundaryAudit() {
   const serverFile = path.join(repoRoot, "src/studio/server.js");
   const server = text(serverFile);
   assert(server.includes("loopback Host headers only"), "PERUN-STUDIO-HOST", "Studio Host-header defense is missing");
-  assert(server.includes("Cross-origin Studio commands are not allowed"), "PERUN-STUDIO-ORIGIN", "Studio Origin defense is missing");
+  assert(server.includes("Cross-origin Studio commands are not allowed"), "PET•S‹STUDIO-ORIGIN", "Studio Origin defense is missing");
   assert(server.includes("Studio session token required"), "PERUN-STUDIO-TOKEN", "Studio session capability check is missing");
   assert(!server.includes('host = "0.0.0.0"'), "PERUN-STUDIO-BIND", "Studio must not default-bind to 0.0.0.0");
 
@@ -135,6 +137,7 @@ function staticBoundaryAudit() {
     assert(Array.isArray(config.forwardPorts) && config.forwardPorts.includes(4317), "PERUN-CODESPACE-PORT", "Codespace must forward Studio port 4317");
     const portConfig = config.portsAttributes?.["4317"] || {};
     assert(String(portConfig.visibility || "private").toLowerCase() !== "public", "PERUN-CODESPACE-PUBLIC", "Studio Codespace port must never be public by configuration");
+    assert(Number(config.hostRequirements?.cpus) === 2, "PERUN-CODESPACE-CORES", "Codespace host requirement must remain at the minimum 2 cores");
   } else {
     fail("PERUN-CODESPACE-CONFIG", ".devcontainer/devcontainer.json is missing");
   }
@@ -151,6 +154,11 @@ function staticBoundaryAudit() {
       assert(/^[0-9a-f]{40}$/i.test(ref), "PERUN-ACTIONS-PIN", `${rel(file)} action is not pinned to a full commit SHA: ${use}`);
     }
   }
+
+  const nodeMajor = Number(process.versions.node.split(".")[0]);
+  assert(nodeMajor >= 24, "PERUN-NODE-RUNTIME", `Perun requires Node.js 24+, found ${process.version}`);
+  const nvmrc = text(path.join(repoRoot, ".nvmrc")).trim();
+  assert(nvmrc === "24.18.1", "PERUN-NODE-PIN", `.nvmrc must pin 24.18.1, found ${nvmrc || "missing"}`);
 
   const pkg = JSON.parse(text(path.join(repoRoot, "package.json")));
   const lock = JSON.parse(text(path.join(repoRoot, "package-lock.json")));
@@ -178,7 +186,7 @@ function main() {
   run(npm, ["ls", "--all"], "dependency graph integrity");
 
   if (!offline) {
-    run(npm, ["audit", "--omit=dev", "--audit-level=moderate"], "dependency vulnerability audit");
+    run(npm, ["audit", "--omit=dev", "--audit-level=low"], "dependency vulnerability audit (all severities)");
     run(npm, ["audit", "signatures"], "registry signatures / attestations");
   } else {
     process.stdout.write("\nPERUN offline mode: network vulnerability/signature checks intentionally skipped.\n");
