@@ -6,9 +6,27 @@
 **Developed by Altru.dev**  
 **© 2026 Altru.dev. All rights reserved.**
 
-This is the **canonical standalone repository for Calibration Studio**.
+This is the canonical repository for Calibration Studio.
 
-> Current line: **v0.11 preview/candidate**. Canonical preview `v0.11.0-alpha.0` is published from this repository for Linux x64, Windows x64, macOS Intel x64 and macOS Apple Silicon arm64. Historical v0.10.1 was released from the private DDC repository before the product was externalized.
+> Current line: **v0.11 preview/candidate**. The earlier `v0.11.0-alpha.0` platform-binary prerelease is now a historical migration artifact. Large standalone binary distribution is retired from the active product direction.
+
+## Product direction
+
+Calibration Studio is moving to a **terminal-installed Core + locally served visual Studio** model:
+
+```text
+install/update from terminal
+        ↓
+Calibration Core
+        ↓
+local service/API
+        ↓
+browser opens local Studio
+        ↓
+visual intake, calibration, evidence, history and repair workflow
+```
+
+The CLI remains a first-class automation surface, but it is not intended to be the normal end-user interface.
 
 ## Architecture
 
@@ -21,7 +39,7 @@ Calibration Studio
   ├── calibration lifecycle
   ├── release / integrity tooling
   ├── Intent IR
-  ├── UI / CLI
+  ├── local web UI / CLI
   └── optional provider contracts
             │
             ▼
@@ -31,7 +49,7 @@ Calibration Studio
 DDC / Crystalline remains private and separate.
 ```
 
-Calibration Studio works without access to the private DDC source repository. DDC may perform additional local analysis through the versioned optional provider protocol, but private DDC topology, transaction-closure, constraint-island and successor-state internals are not part of this repository or public Calibration Studio artifacts.
+Calibration Studio works without access to the private DDC source repository. DDC may perform additional local analysis through the versioned optional provider protocol, but private DDC implementation internals are not part of this repository or public Calibration Studio artifacts.
 
 See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -48,10 +66,9 @@ See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE
 - deterministic Intent IR compile/verify/gate/diff;
 - deterministic release manifests and detached Ed25519 verification;
 - pinned Playwright/Chromium runtime boundary;
-- self-contained four-platform staging/release pipeline;
 - local zero-remote-runtime artifact viewer;
-- local-first security, regression, runtime and packaging gates;
-- optional manually dispatched GitHub-hosted validation and preview-build mirrors;
+- local-first security, regression and runtime gates;
+- optional manually dispatched GitHub-hosted validation mirror;
 - GitHub App integration using signed webhooks, installation-scoped REST API access and GitHub Checks without requiring GitHub Actions;
 - isolated GitHub calibration worker with HMAC dispatch, persistent local queue, bounded Git source snapshots and Docker execution with network disabled, read-only root, dropped Linux capabilities and explicit CPU/memory/PID limits;
 - base-vs-head regression gating and automatic repair verification against a base-commit-owned Calibration Studio policy and immutable baseline.
@@ -64,15 +81,15 @@ The authoritative default is local validation:
 npm run gate
 ```
 
-GitHub Actions are **optional only**. The repository contains manual `workflow_dispatch` workflows for an operator who deliberately wants a hosted validation run or four-platform preview build. There are no automatic push, pull-request or scheduled Actions triggers.
+GitHub Actions are **optional only**. The repository keeps one manually dispatched validation workflow. There are no automatic push, pull-request or scheduled Actions triggers, and there is no hosted binary-build workflow.
 
-See [`LOCAL-VALIDATION.md`](LOCAL-VALIDATION.md) for the complete local gate and optional-workflow policy.
+See [`LOCAL-VALIDATION.md`](LOCAL-VALIDATION.md).
 
 ## GitHub App + isolated worker
 
-Calibration Studio has a dedicated GitHub App boundary for pull-request intake. The webhook service verifies GitHub signatures, authenticates the installation, creates a Check Run and dispatches the long-running job to the worker rather than executing pull-request code in the webhook process.
+Calibration Studio has a dedicated GitHub App boundary for pull-request intake. The webhook service verifies GitHub signatures, authenticates the installation, creates a Check Run and dispatches long-running work to the worker rather than executing pull-request code in the webhook process.
 
-The worker independently authenticates as the GitHub App, loads its policy, baseline and evaluator plan from the **base commit**, materializes bounded base/head source snapshots through the GitHub API and evaluates each snapshot only inside the configured Docker sandbox. GitHub credentials and worker secrets are never mounted into that sandbox.
+The worker independently authenticates as the GitHub App, loads policy, baseline and evaluator plan from the **base commit**, materializes bounded base/head source snapshots through the GitHub API and evaluates each snapshot only inside the configured Docker sandbox. GitHub credentials and worker secrets are never mounted into that sandbox.
 
 Recommended permissions are deliberately narrow: **Metadata read, Pull requests read, Contents read and Checks write**. See [`docs/GITHUB-APP.md`](docs/GITHUB-APP.md).
 
@@ -82,10 +99,6 @@ Start the worker and webhook services separately:
 npm run github-worker
 npm run github-app
 ```
-
-The configured target repository supplies `.calibration/github-policy.json`, an immutable Calibration Studio baseline and a base-owned evaluation plan. The worker then turns pull requests into real pass/fail regression Checks and, when the base is already regressed, reports whether the pull request verifies the repair.
-
-This integration uses GitHub webhooks and REST APIs directly. GitHub Actions are not required.
 
 ## DDC self-calibration
 
@@ -101,7 +114,7 @@ DDC commit
   -> repair verification
 ```
 
-Calibration Studio supplies observation and verification capabilities; DDC remains the authority over its own declared expectations and approved baseline. DDC validation pins an exact canonical Calibration Studio revision rather than importing this repository as source.
+Calibration Studio supplies observation and verification capabilities; DDC remains the authority over its own declared expectations and approved baseline.
 
 ## Development checks
 
@@ -112,22 +125,19 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run gate
 ```
 
-Supply-chain, runtime and package validation remain explicit:
+Supply-chain and browser runtime validation remain explicit:
 
 ```bash
 npm run gate:supply-chain
 npm run runtime:install-browser
 npm run gate:runtime
-npm run gate:standalone
 ```
 
 Calibration itself does not download browser executables.
 
 ## Release status
 
-Canonical preview release: **`v0.11.0-alpha.0`**.
-
-The preview is intentionally not called 1.0. Windows publisher signing and macOS notarization remain future production-distribution work.
+`v0.11.0-alpha.0` is retained as historical extraction/cutover evidence. Platform-specific standalone binaries are no longer the active distribution model. The next product-facing delivery target is the installable Core with a served local Studio UI.
 
 The completed extraction record is preserved in [`MIGRATION.md`](MIGRATION.md).
 

@@ -2,7 +2,7 @@
   "name": "@altrudev/calibration-studio",
   "version": "0.11.0-alpha.0",
   "private": true,
-  "description": "Standalone Calibration Studio with universal adapters, deterministic lifecycle, Intent IR, release integrity, and an optional private DDC provider boundary.",
+  "description": "Calibration Studio core with universal adapters, deterministic lifecycle, Intent IR, release integrity, local web UI, and an optional private DDC provider boundary.",
   "license": "UNLICENSED",
   "bin": {
     "calibrate": "bin/calibrate-entry.js",
@@ -16,12 +16,10 @@
     "gate:security": "node scripts/validate-local.js --security",
     "gate:supply-chain": "node scripts/validate-local.js --supply-chain",
     "gate:runtime": "node scripts/validate-local.js --runtime",
-    "gate:standalone": "node scripts/validate-local.js --standalone",
     "github-app": "node bin/github-app.js",
     "github-worker": "node bin/github-worker.js",
     "runtime:install-browser": "node src/runtime/install-browser.js",
     "runtime:verify-browser": "node src/runtime/verify-browser.js",
-    "standalone:stage": "node src/release/stage-standalone.js",
     "adapters": "node bin/calibrate-entry.js adapters",
     "version:product": "node bin/calibrate-entry.js version"
   },

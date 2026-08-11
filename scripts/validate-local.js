@@ -59,9 +59,7 @@ function security() {
   for (const file of allFiles) {
     const rel = relative(file);
     const base = path.basename(file);
-    if (/\.(?:pem|key|p12|pfx)$/i.test(base) || base === '.env') {
-      findings.push(`secret/key file committed: ${rel}`);
-    }
+    if (/\.(?:pem|key|p12|pfx)$/i.test(base) || base === '.env') findings.push(`secret/key file committed: ${rel}`);
   }
 
   const credentialPatterns = [
@@ -73,9 +71,7 @@ function security() {
     if (path.basename(file) === 'redaction.js') continue;
     let text;
     try { text = fs.readFileSync(file, 'utf8'); } catch { continue; }
-    if (credentialPatterns.some((pattern) => pattern.test(text))) {
-      findings.push(`potential hard-coded credential material: ${relative(file)}`);
-    }
+    if (credentialPatterns.some((pattern) => pattern.test(text))) findings.push(`potential hard-coded credential material: ${relative(file)}`);
   }
 
   const executionPattern = /\bexec(?:Sync|File|FileSync)?\s*\(|\beval\s*\(|\bnew\s+Function\s*\(/;
@@ -110,9 +106,7 @@ function security() {
     for (const file of collectFiles(root)) {
       let text;
       try { text = fs.readFileSync(file, 'utf8'); } catch { continue; }
-      if (privateMarkers.some((pattern) => pattern.test(text))) {
-        findings.push(`private DDC implementation boundary marker: ${relative(file)}`);
-      }
+      if (privateMarkers.some((pattern) => pattern.test(text))) findings.push(`private DDC implementation boundary marker: ${relative(file)}`);
     }
   }
 
@@ -129,16 +123,12 @@ function runtime() {
   run(['run', 'runtime:verify-browser'], 'Pinned browser runtime');
 }
 
-function standalone() {
-  run(['run', 'standalone:stage'], 'Standalone staging');
-}
-
 const args = new Set(process.argv.slice(2));
-const allowed = new Set(['--core', '--security', '--supply-chain', '--runtime', '--standalone', '--all']);
+const allowed = new Set(['--core', '--security', '--supply-chain', '--runtime', '--all']);
 const unknown = [...args].filter((arg) => !allowed.has(arg));
 if (unknown.length) {
   console.error(`Unknown option(s): ${unknown.join(', ')}`);
-  console.error('Usage: node scripts/validate-local.js [--core] [--security] [--supply-chain] [--runtime] [--standalone] [--all]');
+  console.error('Usage: node scripts/validate-local.js [--core] [--security] [--supply-chain] [--runtime] [--all]');
   process.exit(2);
 }
 
@@ -150,11 +140,9 @@ if (args.size === 0) {
   security();
   supplyChain();
   runtime();
-  standalone();
 } else {
   if (args.has('--core')) core();
   if (args.has('--security')) security();
   if (args.has('--supply-chain')) supplyChain();
   if (args.has('--runtime')) runtime();
-  if (args.has('--standalone')) standalone();
 }
