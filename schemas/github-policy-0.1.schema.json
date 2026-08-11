@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration/github-policy-0.1.schema.json",
+  "title": "Calibration Studio GitHub Worker Policy 0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema"],
+  "properties": {
+    "schema": { "const": "altru-calibration-github-policy/0.1" },
+    "enabled": { "type": "boolean", "default": true },
+    "baseline_path": { "type": "string", "minLength": 1, "default": ".calibration/baseline.json" },
+    "plan_path": { "type": "string", "minLength": 1, "default": ".calibration/github-plan.json" },
+    "repair_verification": { "type": "boolean", "default": true },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_files": { "type": "integer", "minimum": 1, "maximum": 20000, "default": 5000 },
+        "max_bytes": { "type": "integer", "minimum": 1024, "maximum": 524288000, "default": 104857600 },
+        "max_blob_bytes": { "type": "integer", "minimum": 1, "maximum": 104857600, "default": 20971520 },
+        "max_observation_bytes": { "type": "integer", "minimum": 1024, "maximum": 52428800, "default": 10485760 }
+      }
+    }
+  }
+}

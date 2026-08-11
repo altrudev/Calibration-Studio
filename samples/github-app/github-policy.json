@@ -1,0 +1,13 @@
+{
+  "schema": "altru-calibration-github-policy/0.1",
+  "enabled": true,
+  "baseline_path": ".calibration/baseline.json",
+  "plan_path": ".calibration/github-plan.json",
+  "repair_verification": true,
+  "limits": {
+    "max_files": 5000,
+    "max_bytes": 104857600,
+    "max_blob_bytes": 20971520,
+    "max_observation_bytes": 10485760
+  }
+}

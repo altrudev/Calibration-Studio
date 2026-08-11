@@ -1,6 +1,6 @@
 # Calibration Studio status
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
 Canonical repository: `altrudev/Calibration-Studio`  
 Current preview: `v0.11.0-alpha.0`  
@@ -20,7 +20,9 @@ The DDC extraction is complete. This repository owns the active Calibration Stud
 - privacy redaction profiles and integrity-verified Calibration Bundles;
 - Intent IR `ddc-intent/0.1` compilation, verification, inheritance, conflict checks and deltas;
 - Web/PWA, Browser Extension, API/Backend, CLI and Game candidate adapters;
-- GitHub App preview with signed webhook intake, installation authentication, PR changed-file ingestion and Checks API output without GitHub Actions;
+- GitHub App with signed webhook intake, installation authentication and Checks API output without requiring GitHub Actions;
+- isolated GitHub calibration worker with signed internal dispatch, persistent queueing, Git-tree/blob source acquisition and bounded Docker execution;
+- trusted-base policy/baseline loading, base/head regression comparison and automatic repair verification;
 - pinned Playwright 1.62.1 browser runtime boundary;
 - local zero-remote-runtime artifact viewer;
 - standalone `calibrate` and `ddc-intent` CLIs;
@@ -31,7 +33,7 @@ The DDC extraction is complete. This repository owns the active Calibration Stud
 - exact Node 24.18.1 standalone staging;
 - Linux x64, Windows x64, macOS x64 and macOS arm64 packaging/release pipeline.
 
-The GitHub App integration is currently an intake/orchestration preview. Its webhook process never executes pull-request code; production deep calibration requires a separately isolated worker. The default runner publishes a neutral Check Run after verified API intake.
+The GitHub integration now has a real deep-calibration execution boundary. The webhook process never executes pull-request code. Long-running work is HMAC-dispatched to a separate worker and queued before execution. The worker does not trust policy from the PR head: policy, baseline and evaluator plan are loaded from the PR base commit. Candidate source executes only inside a configured Docker sandbox with network disabled, read-only root, dropped capabilities, no host-environment inheritance and explicit resource limits. Live deployment still requires a pre-provisioned sandbox image, GitHub App credentials, worker secret and repository-owned `.calibration` policy/baseline artifacts.
 
 ## Boundary
 

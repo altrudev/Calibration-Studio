@@ -52,7 +52,9 @@ See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE
 - local zero-remote-runtime artifact viewer;
 - local-first security, regression, runtime and packaging gates;
 - optional manually dispatched GitHub-hosted validation and preview-build mirrors;
-- GitHub App preview using signed webhooks, installation-scoped REST API access and GitHub Checks without requiring GitHub Actions.
+- GitHub App integration using signed webhooks, installation-scoped REST API access and GitHub Checks without requiring GitHub Actions;
+- isolated GitHub calibration worker with HMAC dispatch, persistent local queue, bounded Git source snapshots and Docker execution with network disabled, read-only root, dropped Linux capabilities and explicit CPU/memory/PID limits;
+- base-vs-head regression gating and automatic repair verification against a base-commit-owned Calibration Studio policy and immutable baseline.
 
 ## Automation policy
 
@@ -66,21 +68,24 @@ GitHub Actions are **optional only**. The repository contains manual `workflow_d
 
 See [`LOCAL-VALIDATION.md`](LOCAL-VALIDATION.md) for the complete local gate and optional-workflow policy.
 
-## GitHub App integration preview
+## GitHub App + isolated worker
 
-Calibration Studio has a dedicated GitHub App boundary for pull-request intake. It verifies signed GitHub webhooks, authenticates as the installed GitHub App, reads changed-file metadata and publishes a Check Run against the PR head commit.
+Calibration Studio has a dedicated GitHub App boundary for pull-request intake. The webhook service verifies GitHub signatures, authenticates the installation, creates a Check Run and dispatches the long-running job to the worker rather than executing pull-request code in the webhook process.
 
-The webhook process **does not execute pull-request code**. Deep behavioral calibration must be attached through a separate isolated worker boundary. The default development runner returns a neutral intake check until that worker is configured.
+The worker independently authenticates as the GitHub App, loads its policy, baseline and evaluator plan from the **base commit**, materializes bounded base/head source snapshots through the GitHub API and evaluates each snapshot only inside the configured Docker sandbox. GitHub credentials and worker secrets are never mounted into that sandbox.
 
-Recommended preview permissions are deliberately narrow: Metadata read, Pull requests read and Checks write. See [`docs/GITHUB-APP.md`](docs/GITHUB-APP.md).
+Recommended permissions are deliberately narrow: **Metadata read, Pull requests read, Contents read and Checks write**. See [`docs/GITHUB-APP.md`](docs/GITHUB-APP.md).
 
-Start the local adapter with:
+Start the worker and webhook services separately:
 
 ```bash
+npm run github-worker
 npm run github-app
 ```
 
-This integration uses the GitHub REST API directly and does not require GitHub Actions.
+The configured target repository supplies `.calibration/github-policy.json`, an immutable Calibration Studio baseline and a base-owned evaluation plan. The worker then turns pull requests into real pass/fail regression Checks and, when the base is already regressed, reports whether the pull request verifies the repair.
+
+This integration uses GitHub webhooks and REST APIs directly. GitHub Actions are not required.
 
 ## DDC self-calibration
 
