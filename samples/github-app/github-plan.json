@@ -1,0 +1,17 @@
+{
+  "schema": "calibration-continuous-plan/0.8",
+  "trace_on_regression": false,
+  "gate": {
+    "fail_on_environment_change": false,
+    "fail_on_untracked_observations": false
+  },
+  "setup_commands": [],
+  "evaluate": {
+    "command": "node",
+    "args": ["scripts/calibration-observe.js"],
+    "cwd": ".",
+    "timeout_ms": 120000
+  },
+  "pass_environment": [],
+  "environment": {}
+}

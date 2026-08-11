@@ -20,7 +20,7 @@ function payload() {
     action: "synchronize",
     installation: { id: 42 },
     repository: { id: 7, full_name: "altrudev/example" },
-    pull_request: { number: 12, draft: false, head: { sha: "a".repeat(40) } },
+    pull_request: { number: 12, draft: false, base: { sha: "b".repeat(40) }, head: { sha: "a".repeat(40) } },
     sender: { login: "octocat" }
   };
 }
@@ -46,6 +46,7 @@ test("pull_request events normalize to a minimal calibration job", () => {
   const job = normalizeGitHubEvent({ eventName: "pull_request", payload: payload() });
   assert.equal(job.repository.full_name, "altrudev/example");
   assert.equal(job.pull_request.number, 12);
+  assert.equal(job.base_sha, "b".repeat(40));
   assert.equal(job.head_sha, "a".repeat(40));
   assert.equal(normalizeGitHubEvent({ eventName: "issues", payload: {} }), null);
 });
@@ -55,33 +56,14 @@ test("processor authenticates installation and publishes a completed check", asy
   const fetchImpl = async (url, init) => {
     calls.push({ url: String(url), init });
     const pathname = new URL(url).pathname;
-    if (pathname === "/app/installations/42/access_tokens") {
-      return new Response(JSON.stringify({ token: "installation-token" }), { status: 201, headers: { "content-type": "application/json" } });
-    }
-    if (pathname === "/repos/altrudev/example/check-runs" && init.method === "POST") {
-      return new Response(JSON.stringify({ id: 99 }), { status: 201, headers: { "content-type": "application/json" } });
-    }
-    if (pathname === "/repos/altrudev/example/check-runs/99" && init.method === "PATCH") {
-      return new Response(JSON.stringify({ id: 99, conclusion: "success" }), { status: 200, headers: { "content-type": "application/json" } });
-    }
+    if (pathname === "/app/installations/42/access_tokens") return new Response(JSON.stringify({ token: "installation-token" }), { status: 201, headers: { "content-type": "application/json" } });
+    if (pathname === "/repos/altrudev/example/check-runs" && init.method === "POST") return new Response(JSON.stringify({ id: 99 }), { status: 201, headers: { "content-type": "application/json" } });
+    if (pathname === "/repos/altrudev/example/check-runs/99" && init.method === "PATCH") return new Response(JSON.stringify({ id: 99, conclusion: "success" }), { status: 200, headers: { "content-type": "application/json" } });
     throw new Error(`Unexpected request ${init.method} ${url}`);
   };
-  const processor = createGitHubWebhookProcessor({
-    appId: "123",
-    privateKeyPem,
-    webhookSecret: "secret",
-    fetchImpl,
-    runner: async job => ({ conclusion: "success", title: "Calibrated", summary: `PR #${job.pull_request.number} passed.` })
-  });
+  const processor = createGitHubWebhookProcessor({ appId: "123", privateKeyPem, webhookSecret: "secret", fetchImpl, runner: async job => ({ conclusion: "success", title: "Calibrated", summary: `PR #${job.pull_request.number} passed.` }) });
   const rawBody = Buffer.from(JSON.stringify(payload()), "utf8");
-  const result = await processor({
-    headers: {
-      "x-hub-signature-256": signature("secret", rawBody),
-      "x-github-delivery": "delivery-1",
-      "x-github-event": "pull_request"
-    },
-    rawBody
-  });
+  const result = await processor({ headers: { "x-hub-signature-256": signature("secret", rawBody), "x-github-delivery": "delivery-1", "x-github-event": "pull_request" }, rawBody });
   assert.deepEqual(result, { status: "processed", delivery_id: "delivery-1", check_run_id: 99, conclusion: "success" });
   assert.equal(calls.length, 3);
   assert.match(calls[0].init.headers.authorization, /^Bearer eyJ/);
@@ -89,23 +71,29 @@ test("processor authenticates installation and publishes a completed check", asy
   assert.equal(JSON.parse(calls[2].init.body).conclusion, "success");
 });
 
+test("processor can dispatch a long-running calibration and return after queue acceptance", async () => {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), init });
+    const pathname = new URL(url).pathname;
+    if (pathname === "/app/installations/42/access_tokens") return new Response(JSON.stringify({ token: "installation-token" }), { status: 201, headers: { "content-type": "application/json" } });
+    if (pathname === "/repos/altrudev/example/check-runs") return new Response(JSON.stringify({ id: 101 }), { status: 201, headers: { "content-type": "application/json" } });
+    throw new Error(`Unexpected request ${init.method} ${url}`);
+  };
+  let dispatched;
+  const processor = createGitHubWebhookProcessor({ appId: "123", privateKeyPem, webhookSecret: "secret", fetchImpl, dispatcher: async value => { dispatched = value; return { status: "queued" }; } });
+  const rawBody = Buffer.from(JSON.stringify(payload()), "utf8");
+  const result = await processor({ headers: { "x-hub-signature-256": signature("secret", rawBody), "x-github-delivery": "delivery-queued", "x-github-event": "pull_request" }, rawBody });
+  assert.deepEqual(result, { status: "accepted", delivery_id: "delivery-queued", check_run_id: 101 });
+  assert.equal(dispatched.checkRunId, 101);
+  assert.equal(dispatched.deliveryId, "delivery-queued");
+  assert.equal(calls.length, 2);
+});
+
 test("processor rejects tampered webhooks before any GitHub API call", async () => {
   let calls = 0;
-  const processor = createGitHubWebhookProcessor({
-    appId: "123",
-    privateKeyPem,
-    webhookSecret: "secret",
-    fetchImpl: async () => { calls++; throw new Error("must not run"); },
-    runner: async () => ({ conclusion: "success", title: "x", summary: "x" })
-  });
+  const processor = createGitHubWebhookProcessor({ appId: "123", privateKeyPem, webhookSecret: "secret", fetchImpl: async () => { calls++; throw new Error("must not run"); }, runner: async () => ({ conclusion: "success", title: "x", summary: "x" }) });
   const rawBody = Buffer.from(JSON.stringify(payload()), "utf8");
-  await assert.rejects(() => processor({
-    headers: {
-      "x-hub-signature-256": signature("wrong-secret", rawBody),
-      "x-github-delivery": "delivery-2",
-      "x-github-event": "pull_request"
-    },
-    rawBody
-  }), /Invalid GitHub webhook signature/);
+  await assert.rejects(() => processor({ headers: { "x-hub-signature-256": signature("wrong-secret", rawBody), "x-github-delivery": "delivery-2", "x-github-event": "pull_request" }, rawBody }), /Invalid GitHub webhook signature/);
   assert.equal(calls, 0);
 });
