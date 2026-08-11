@@ -100,7 +100,7 @@ function staticBoundaryAudit() {
     }
   }
 
-  for (const file of walk("ui")) {
+  for (const file of walk("ui") {
     if (!/\.(?:html?|js|css)$/i.test(file)) continue;
     if (/<(?:script|link)\b[^>]+https?:\/\//i.test(text(file))) {
       fail("PERUN-REMOTE-UI", `remote runtime asset in ${rel(file)}`);
@@ -112,7 +112,7 @@ function staticBoundaryAudit() {
     assert(value.includes("15m"), "PERUN-LAUNCHER-IDLE", `${rel(file)} must retain the 15-minute Codespace idle timeout`);
     assert(value.includes("168h"), "PERUN-LAUNCHER-RETENTION", `${rel(file)} must retain the 7-day Codespace retention period`);
     const dangerousBootstrap = [
-      /curl[^\n|]*\|\s*(?:sh|bash)\b/i,
+      /curl[^\n|]|*\p\s*(?:sh|bash)\b/i,
       /wget[^\n|]*\|\s*(?:sh|bash)\b/i,
       /\bInvoke-Expression\b/i,
       /\biex\s*\(/i,
@@ -126,7 +126,7 @@ function staticBoundaryAudit() {
   const serverFile = path.join(repoRoot, "src/studio/server.js");
   const server = text(serverFile);
   assert(server.includes("loopback Host headers only"), "PERUN-STUDIO-HOST", "Studio Host-header defense is missing");
-  assert(server.includes("Cross-origin Studio commands are not allowed"), "PET•S‹STUDIO-ORIGIN", "Studio Origin defense is missing");
+  assert(server.includes("Cross-origin Studio commands are not allowed"), "PERUN-STUDIO-ORIGIN", "Studio Origin defense is missing");
   assert(server.includes("Studio session token required"), "PERUN-STUDIO-TOKEN", "Studio session capability check is missing");
   assert(!server.includes('host = "0.0.0.0"'), "PERUN-STUDIO-BIND", "Studio must not default-bind to 0.0.0.0");
 
@@ -158,7 +158,7 @@ function staticBoundaryAudit() {
   const nodeMajor = Number(process.versions.node.split(".")[0]);
   assert(nodeMajor >= 24, "PERUN-NODE-RUNTIME", `Perun requires Node.js 24+, found ${process.version}`);
   const nvmrc = text(path.join(repoRoot, ".nvmrc")).trim();
-  assert(nvmrc === "24.18.1", "PERUN-NODE-PIN", `.nvmrc must pin 24.18.1, found ${nvmrc || "missing"}`);
+  assert(nvmrc === "24.19.0", "PERUN-NODE-PIN", `.nvmrc must pin 24.19.0, found ${nvmrc || "missing"}`);
 
   const pkg = JSON.parse(text(path.join(repoRoot, "package.json")));
   const lock = JSON.parse(text(path.join(repoRoot, "package-lock.json")));
