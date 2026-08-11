@@ -40,6 +40,7 @@ function createDockerSandboxExecutor({ dockerCommand = "docker", image, memoryMb
     const mount = (source, target, readonly = false) => `type=bind,src=${source},dst=${target}${readonly ? ",readonly" : ""}`;
     const args = [
       "run", "--rm",
+      "--pull", "never",
       "--network", "none",
       "--read-only",
       "--cap-drop", "ALL",
@@ -54,8 +55,9 @@ function createDockerSandboxExecutor({ dockerCommand = "docker", image, memoryMb
       "--tmpfs", "/work:rw,nosuid,nodev,size=1073741824,mode=1777",
       "--tmpfs", "/tmp:rw,nosuid,nodev,size=536870912,mode=1777",
       "--workdir", "/work",
+      "--entrypoint", "node",
       image,
-      "node", "/control/sandbox-runner.js", "/control/plan.json", "/input", "/output/observations.json"
+      "/control/sandbox-runner.js", "/control/plan.json", "/input", "/output/observations.json"
     ];
     try {
       const result = spawnImpl(dockerCommand, args, { encoding: "utf8", shell: false, windowsHide: true, timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 });
