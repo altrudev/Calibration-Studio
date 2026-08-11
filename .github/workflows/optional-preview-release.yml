@@ -1,0 +1,120 @@
+name: "Optional - Four-platform preview build"
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish or replace assets on the matching prerelease tag"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            package: linux-x64
+            expected_arch: x64
+            archive: tar.gz
+          - os: windows-latest
+            package: windows-x64
+            expected_arch: x64
+            archive: zip
+          - os: macos-15-intel
+            package: macos-x64
+            expected_arch: x64
+            archive: tar.gz
+          - os: macos-15
+            package: macos-arm64
+            expected_arch: arm64
+            archive: tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.18.1"
+          package-manager-cache: false
+      - name: Verify runner architecture
+        shell: bash
+        run: node -e "if(process.arch!=='${{ matrix.expected_arch }}') throw new Error('unexpected arch '+process.arch)"
+      - name: Install exact dependency graph and browser runtime
+        shell: bash
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild node-pty --foreground-scripts
+          npm run runtime:install-browser
+      - name: Run local-first gate and stage package
+        shell: bash
+        run: |
+          npm run gate
+          npm run gate:runtime
+          rm -rf build dist
+          mkdir -p build/standalone dist
+          node src/release/stage-standalone.js --output build/standalone > build/stage-result.json
+          node src/release/size-report.js build/standalone > "dist/Calibration-Studio-${{ matrix.package }}.size.json"
+          cp build/standalone/calibration-release-manifest.json "dist/Calibration-Studio-${{ matrix.package }}.manifest.json"
+      - name: Archive Unix package
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          NAME="Calibration-Studio-${{ matrix.package }}"
+          tar -czf "dist/$NAME.tar.gz" -C build standalone
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "dist/$NAME.tar.gz" > "dist/$NAME.tar.gz.sha256"
+          else
+            shasum -a 256 "dist/$NAME.tar.gz" > "dist/$NAME.tar.gz.sha256"
+          fi
+      - name: Archive Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $name = 'Calibration-Studio-${{ matrix.package }}'
+          $archive = Join-Path 'dist' ($name + '.zip')
+          Compress-Archive -Path 'build\standalone\*' -DestinationPath $archive -CompressionLevel Optimal
+          $hash = (Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower()
+          ($hash + '  ' + [System.IO.Path]::GetFileName($archive)) | Out-File -Encoding ascii ($archive + '.sha256')
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Calibration-Studio-${{ matrix.package }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    if: ${{ inputs.publish == true }}
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: Calibration-Studio-*
+          path: release-assets
+          merge-multiple: true
+      - name: Publish matching prerelease assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --target "$GITHUB_SHA" \
+              --title "Calibration Studio $TAG" \
+              --prerelease \
+              --notes "Optional manually dispatched four-platform preview build. Local validation remains the authoritative default."
+          fi

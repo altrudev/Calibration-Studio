@@ -1,6 +1,6 @@
 # Local validation
 
-Calibration Studio does **not** use GitHub Actions. Validation and packaging are run locally or on operator-controlled machines.
+Calibration Studio is **local-first**. Validation and packaging run locally or on operator-controlled machines by default. GitHub Actions are not required and never run automatically on push, pull request or schedule.
 
 Install the exact dependency graph first:
 
@@ -8,32 +8,34 @@ Install the exact dependency graph first:
 npm ci --ignore-scripts --no-audit --no-fund
 ```
 
-Normal source/test gate:
+Run the normal local gate:
 
 ```bash
-node scripts/validate-local.js
+npm run gate
 ```
 
-Optional runtime and packaging gates:
+The default gate runs source syntax checks, regression tests, secret/key detection, hard-coded credential checks, execution-primitive checks, remote-runtime UI checks and the private-DDC implementation boundary guard.
+
+Additional local gates are explicit:
 
 ```bash
+npm run gate:security
+npm run gate:supply-chain
 npm run runtime:install-browser
-node scripts/validate-local.js --runtime
-node scripts/validate-local.js --standalone
-node scripts/validate-local.js --all
+npm run gate:runtime
+npm run gate:standalone
+npm run gate:all
 ```
 
-The existing product commands remain available directly:
+`gate:supply-chain` requires registry/network access. Browser runtime installation is also explicit; calibration itself does not silently download browser executables.
 
-```bash
-npm run check
-npm test
-npm run runtime:verify-browser
-npm run standalone:stage
-npm run adapters
-npm run version:product
-```
+## Optional GitHub workflows
 
-Four-platform release packages are now produced deliberately on the target platform or another operator-controlled build machine instead of GitHub-hosted runners. The published `v0.11.0-alpha.0` release remains the validated migration baseline.
+Two GitHub workflows are retained only as **manual operator tools** using `workflow_dispatch`:
 
-Historical Actions definitions are retained by Git history only; active `.github/workflows` is intentionally absent.
+- `Optional - Calibration validation` mirrors a selected local gate on a GitHub-hosted Linux runner.
+- `Optional - Four-platform preview build` builds Linux x64, Windows x64, macOS x64 and macOS arm64 packages, with one-day artifact retention. Publishing release assets requires an explicit `publish=true` choice.
+
+Neither workflow has a `push`, `pull_request`, `schedule` or other automatic trigger. They consume GitHub Actions quota only when deliberately started by an operator.
+
+The published `v0.11.0-alpha.0` release remains the validated migration baseline.

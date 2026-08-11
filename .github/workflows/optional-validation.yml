@@ -1,0 +1,51 @@
+name: "Optional - Calibration validation"
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Validation scope to run on a GitHub-hosted runner"
+        required: true
+        default: "default"
+        type: choice
+        options:
+          - default
+          - core
+          - security
+          - supply-chain
+          - runtime
+          - standalone
+          - all
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.18.1"
+          package-manager-cache: false
+      - name: Install exact dependency graph
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install pinned browser when required
+        if: ${{ inputs.scope == 'runtime' || inputs.scope == 'standalone' || inputs.scope == 'all' }}
+        run: npm run runtime:install-browser
+      - name: Run selected local-first gate
+        shell: bash
+        run: |
+          case "${{ inputs.scope }}" in
+            default) npm run gate ;;
+            core) node scripts/validate-local.js --core ;;
+            security) npm run gate:security ;;
+            supply-chain) npm run gate:supply-chain ;;
+            runtime) npm run gate:runtime ;;
+            standalone) npm run gate:standalone ;;
+            all) npm run gate:all ;;
+            *) echo "Unknown scope" >&2; exit 2 ;;
+          esac

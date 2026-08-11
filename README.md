@@ -50,11 +50,25 @@ See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE
 - pinned Playwright/Chromium runtime boundary;
 - self-contained four-platform staging/release pipeline;
 - local zero-remote-runtime artifact viewer;
-- GitHub App preview using signed webhooks, installation-scoped REST API access and GitHub Checks without GitHub Actions.
+- local-first security, regression, runtime and packaging gates;
+- optional manually dispatched GitHub-hosted validation and preview-build mirrors;
+- GitHub App preview using signed webhooks, installation-scoped REST API access and GitHub Checks without requiring GitHub Actions.
+
+## Automation policy
+
+The authoritative default is local validation:
+
+```bash
+npm run gate
+```
+
+GitHub Actions are **optional only**. The repository contains manual `workflow_dispatch` workflows for an operator who deliberately wants a hosted validation run or four-platform preview build. There are no automatic push, pull-request or scheduled Actions triggers.
+
+See [`LOCAL-VALIDATION.md`](LOCAL-VALIDATION.md) for the complete local gate and optional-workflow policy.
 
 ## GitHub App integration preview
 
-Calibration Studio now has a dedicated GitHub App boundary for pull-request intake. It verifies signed GitHub webhooks, authenticates as the installed GitHub App, reads changed-file metadata and publishes a Check Run against the PR head commit.
+Calibration Studio has a dedicated GitHub App boundary for pull-request intake. It verifies signed GitHub webhooks, authenticates as the installed GitHub App, reads changed-file metadata and publishes a Check Run against the PR head commit.
 
 The webhook process **does not execute pull-request code**. Deep behavioral calibration must be attached through a separate isolated worker boundary. The default development runner returns a neutral intake check until that worker is configured.
 
@@ -89,16 +103,17 @@ Calibration Studio supplies observation and verification capabilities; DDC remai
 Requires Node.js 24 or newer.
 
 ```bash
-npm ci --ignore-scripts
-npm run check
-npm test
+npm ci --ignore-scripts --no-audit --no-fund
+npm run gate
 ```
 
-Install the pinned browser runtime explicitly when browser adapters are needed:
+Supply-chain, runtime and package validation remain explicit:
 
 ```bash
+npm run gate:supply-chain
 npm run runtime:install-browser
-npm run runtime:verify-browser
+npm run gate:runtime
+npm run gate:standalone
 ```
 
 Calibration itself does not download browser executables.
