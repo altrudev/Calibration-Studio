@@ -1,158 +1,88 @@
 # Calibration Studio
 
-**Behavioral diagnostics and software-assurance tooling.**
+**Behavioral diagnostics and software-assurance tooling.**  
+**Built with DDC · Developed by Altru.dev · © 2026 Altru.dev.**
 
-**Built with DDC**  
-**Developed by Altru.dev**  
-**© 2026 Altru.dev. All rights reserved.**
+Calibration Studio now uses **GitHub Codespaces as its normal runtime**. There is no platform runtime archive and normal users do not clone the repository locally.
 
-This is the canonical repository for Calibration Studio.
+## Start Calibration Studio
 
-> Current line: **v0.11 preview/candidate**. Large standalone binary distribution is retired. The active product model is a terminal-installed Calibration Core with a locally served visual Studio.
+Local requirement: [GitHub CLI (`gh`)](https://cli.github.com/) and a GitHub account with Codespaces access.
 
-## Quick start: visual Studio
+Download only the launcher for your OS from `launch/`:
 
-Requirements: Node.js 24 or newer and Git.
+- Windows: `Calibration-Studio.cmd`
+- Ubuntu/Linux: `calibration-studio.sh`
+- macOS: `Calibration-Studio.command`
 
-Clone once:
+Run it. On first use it authenticates GitHub CLI if necessary, finds or creates a dedicated Codespace for `altrudev/Calibration-Studio`, chooses the lowest-core machine available, starts the Codespace, starts Calibration Core, opens a private port tunnel, and opens the Studio dashboard at `http://127.0.0.1:4317`.
 
-```bash
-git clone https://github.com/altrudev/Calibration-Studio.git
-cd Calibration-Studio
-```
+No repository clone, local Node installation, or Calibration CLI commands are required for normal use.
 
-Then launch visually:
+Run the launcher with `restart` to force a Codespace stop/start. A failed startup also performs one automatic restart before reporting failure.
 
-- Windows: double-click `launch/Calibration-Studio.cmd`
-- Ubuntu/Linux: run `./launch/calibration-studio.sh`
-- macOS: double-click `launch/Calibration-Studio.command`
+## Cost controls
 
-The launcher checks the local dependency graph, installs the exact locked dependencies when missing, installs/verifies the pinned Chromium test runtime when needed, starts Calibration Studio on loopback only, and opens the default browser automatically.
+The launcher creates the Codespace with a 15-minute idle timeout and 7-day retention period. No Codespaces prebuild is configured, so this runtime path does not introduce an Actions-backed prebuild.
 
-The same flow is available from a terminal:
+The dashboard shows **Codespaces core-hours used this month**. For GitHub Free and Pro personal plans it also shows the included allowance, remaining core-hours, and a usage meter. GitHub billing data can lag; if the current token cannot read user billing-plan data, the dashboard explicitly falls back to current-session core-hours rather than inventing a monthly value.
 
-```bash
-npm start
-```
-
-Default Studio URL: `http://127.0.0.1:4317`.
-
-No Calibration commands need to be typed for normal use. The CLI remains available for automation and advanced workflows.
-
-## Product flow
+## Runtime architecture
 
 ```text
-launcher / npm start
-        ↓
-local bootstrap
-        ↓
-Calibration Core
-        ↓
-127.0.0.1:4317
-        ↓
-visual Studio
-        ↓
+small OS launcher
+    ↓
+GitHub CLI authentication
+    ↓
+start / restart dedicated Codespace
+    ↓
+Calibration Core + Studio server
+    ↓
+private gh port-forward 4317 → localhost:4317
+    ↓
+visual browser Studio
+    ↓
 Declared → Observed → Fracture → Lineage → Repair → Re-observe
 ```
 
-The Studio UI connects to an allow-listed local command bridge. It does not expose an arbitrary shell. The HTTP service binds to loopback only and serves local UI assets with a restrictive Content Security Policy.
-
-## Architecture
-
-Calibration Studio is separated from DDC at the repository boundary:
-
-```text
-Calibration Studio
-  ├── product-owned calibration engine
-  ├── adapters
-  ├── calibration lifecycle
-  ├── Intent IR
-  ├── local Studio server + browser UI
-  ├── CLI automation surface
-  └── optional provider contracts
-            │
-            ▼
-      local DDC provider
-      (optional/private)
-
-DDC / Crystalline remains private and separate.
-```
-
-Calibration Studio works without access to the private DDC source repository. Private DDC implementation internals are not part of this repository or public Calibration Studio artifacts.
-
-See [`docs/DDC-INTEGRATION.md`](docs/DDC-INTEGRATION.md) and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The Studio service itself binds to loopback only inside the Codespace. The local browser reaches it through an authenticated GitHub Codespaces tunnel. Studio mutations require an in-memory per-process capability token and same-origin checks; the command bridge exposes allow-listed Calibration operations only and uses `shell:false`.
 
 ## Current capabilities
 
-- locally served visual Studio with automatic browser launch;
-- Windows, Linux and macOS text launchers sharing one implementation;
-- loopback-only local HTTP/API bridge with allow-listed Calibration operations;
-- live Core/runtime connection status and visual execution results;
-- Web/PWA, Browser Extension, API/Backend, CLI and Game candidate adapters;
+- Codespaces-hosted visual Studio with automatic create/start/restart/tunnel flow;
+- monthly Codespaces core-hour counter with Free/Pro quota awareness;
+- Web/PWA, Browser Extension, API/Backend, CLI and Game adapters;
 - normalized observations and developer-owned calibration contracts;
 - immutable baselines and regression comparison;
 - longitudinal history and exact first-parent first-bad tracing;
 - continuous calibration gates;
-- minimal, domain-neighborhood and full repair scopes;
-- scoped repair verification;
-- privacy-profiled, integrity-verified evidence bundles;
-- deterministic Intent IR compile/verify/gate/diff;
+- repair scopes and repair verification;
+- privacy-profiled evidence bundles and Intent IR;
 - pinned Playwright/Chromium runtime boundary;
-- local artifact viewer with integrity verification;
-- local-first security, regression and runtime gates;
-- optional manually dispatched GitHub-hosted validation mirror;
-- GitHub App integration and isolated worker without requiring GitHub Actions.
+- GitHub App + isolated calibration worker;
+- local-first validation and Perun production-security gate.
 
-## Automation policy
+## Security / validation
 
-The authoritative default is local validation:
+The authoritative validation remains operator-controlled and does not require GitHub Actions:
 
 ```bash
 npm run gate
+npm run perun
 ```
 
-GitHub Actions are optional only. There are no automatic push, pull-request or scheduled Actions triggers, and there is no hosted binary-build workflow.
+`npm run perun` runs source checks, regression/adversarial tests, dependency graph integrity, vulnerability audit, registry signature/attestation checks, launcher/workflow/runtime-boundary checks and secret/execution-surface checks. The Codespace first-run setup runs the full gate before it is considered ready.
 
-See [`LOCAL-VALIDATION.md`](LOCAL-VALIDATION.md).
+The one retained GitHub Actions workflow is manual-only (`workflow_dispatch`) and its third-party actions are pinned to immutable commit SHAs. There are no push, pull-request, schedule, binary-build or Codespaces-prebuild workflows.
 
-## GitHub App + isolated worker
+See `docs/SECURITY.md`, `docs/ARCHITECTURE.md`, `docs/USER-GUIDE.md`, and `LOCAL-VALIDATION.md`.
 
-Start the worker and webhook services separately:
+## Development fallback
 
-```bash
-npm run github-worker
-npm run github-app
-```
+Repository contributors may still work from a normal checkout with Node.js 24+; that is a development surface, not the normal product installation path.
 
-Recommended permissions are deliberately narrow: **Metadata read, Pull requests read, Contents read and Checks write**. See [`docs/GITHUB-APP.md`](docs/GITHUB-APP.md).
+## Ecosystem ownership
 
-## Development checks
-
-Requires Node.js 24 or newer.
-
-```bash
-npm ci --ignore-scripts --no-audit --no-fund
-npm run gate
-```
-
-Supply-chain and browser runtime validation remain explicit:
-
-```bash
-npm run gate:supply-chain
-npm run runtime:install-browser
-npm run gate:runtime
-```
-
-The interactive launcher may install the pinned browser during explicit first-run setup. Calibration operations themselves do not silently download browser executables.
-
-## Release status
-
-`v0.11.0-alpha.0` remains historical extraction/cutover evidence. Platform-specific standalone binaries are no longer the active distribution model.
-
-The completed extraction record is preserved in [`MIGRATION.md`](MIGRATION.md).
-
-## Canonical ecosystem ownership
-
-- Calibration Studio product: `altrudev/Calibration-Studio`
-- DDC / Crystalline private runtime and research: `altrudev/ddc`
-- Human Translation Protocol and Human Translator: `altrudev/HTP`
+- Calibration Studio: `altrudev/Calibration-Studio`
+- DDC / Crystalline: `altrudev/ddc`
+- Human Translation Protocol + Human Translator: `altrudev/HTP`

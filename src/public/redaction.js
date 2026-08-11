@@ -29,6 +29,28 @@ function sanitizeString(value,rules){
   return out;
 }
 
+function sanitizeEvidenceUrl(value){
+  try{
+    const url=new URL(String(value));
+    url.username="";
+    url.password="";
+    for(const key of [...url.searchParams.keys()])url.searchParams.set(key,"[REDACTED]");
+    return sanitizeString(url.toString(),PROFILES.full);
+  }catch{return sanitizeString(String(value||""),PROFILES.full);}
+}
+
+function scrubEvidenceUrls(value){
+  if(typeof value==="string"){
+    if(/^[a-z][a-z0-9+.-]*:\/\//i.test(value))return sanitizeEvidenceUrl(value);
+    return value;
+  }
+  if(Array.isArray(value))return value.map(scrubEvidenceUrls);
+  if(value&&typeof value==="object")return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,scrubEvidenceUrls(item)]));
+  return value;
+}
+
+function sanitizeEvidence(value){return scrubEvidenceUrls(redact(value,"full"));}
+
 function redact(value,profileName="sanitized",seen=new WeakSet()){
   const rules=typeof profileName==="string"?profile(profileName):profileName;
   if(value===null||value===undefined||typeof value==="number"||typeof value==="boolean")return value;
@@ -51,4 +73,4 @@ function redact(value,profileName="sanitized",seen=new WeakSet()){
   return out;
 }
 
-module.exports={PROFILES,profile,redact,sanitizeString};
+module.exports={PROFILES,profile,redact,sanitizeEvidence,sanitizeEvidenceUrl,sanitizeString};

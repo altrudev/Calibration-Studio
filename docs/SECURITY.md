@@ -1,79 +1,52 @@
 # Calibration Studio security boundary
 
-Calibration Studio is a developer-run diagnostic and assurance product. Some adapters execute developer-selected software, so execution authority and evidence minimization are explicit design boundaries.
+Calibration Studio executes developer-selected software, so execution authority, credential isolation and evidence minimization are explicit boundaries.
 
-## Default principles
+## Codespaces control plane
 
-- local-first operation;
-- no telemetry requirement;
-- no remote runtime JavaScript/CSS in the viewer;
-- no remote code acquisition during calibration;
-- exact dependency lock graph;
-- pinned browser driver/runtime;
-- explicit execution confirmation for CLI, Game, historical tracing and continuous evaluation paths that execute code;
-- dual consent for effectful API requests, remote Game targets, persistent Game state and CLI parent-environment inheritance;
-- bounded output/capture surfaces;
-- recognized secret redaction;
-- immutable approved baselines;
-- deterministic integrity identities for lifecycle/release artifacts.
+- normal users do not clone the product locally;
+- the launcher uses GitHub CLI directly and never pipes downloaded text into a shell;
+- the dedicated Codespace requests the lowest-core available machine, 15-minute idle timeout and 7-day retention;
+- no Codespaces prebuild is configured;
+- Studio port 4317 is not configured public; the normal connection is an authenticated private GitHub CLI port-forward;
+- forced restart and one automatic recovery restart are lifecycle operations only, not arbitrary remote execution interfaces.
 
-## CLI boundary
+## Studio HTTP/API boundary
 
-CLI execution uses `child_process.spawn` with `shell:false`.
+- binds only to `127.0.0.1`/loopback;
+- rejects non-loopback Host headers to resist DNS-rebinding style access;
+- command requests reject disallowed Origin values;
+- command and billing endpoints require a random per-process capability token acquired by the same-origin UI and kept only in memory;
+- no CORS trust is granted;
+- CSP, frame denial, no-referrer, MIME sniffing denial and restrictive Permissions-Policy headers are applied;
+- command bodies and command output are bounded;
+- the API maps structured input onto an allow-listed Calibration operation set and never accepts a shell command string;
+- subprocesses use explicit argv and `shell:false`;
+- the Core command subprocess receives a minimal allow-listed environment, excluding GitHub tokens, SSH agent sockets, Node injection variables and arbitrary host secrets.
 
-By default:
+## Execution authority
 
-- the project is copied to an isolated temporary workspace;
-- HOME/TMP are temporary;
-- the parent environment is not inherited;
-- watched filesystem evidence is restricted to developer-declared project paths;
-- output is bounded;
-- output preview is disabled unless explicitly requested.
+CLI and Game execution, historical tracing and continuous evaluation retain explicit operator confirmation. Effectful API calls, remote Game targets, persistent Game state and CLI parent-environment inheritance require the existing dual plan/operator authority. Workspace-copy isolation is not represented as an OS sandbox; container mode remains the stronger boundary where configured.
 
-Workspace-copy isolation is compatibility isolation, **not an OS sandbox**.
+## Evidence privacy
 
-Container mode is an explicit stronger boundary. Calibration Studio never silently downgrades a requested container run to host execution.
+Recognized secrets are redacted from exported evidence and bundles. Browser observations expose storage key topology rather than local-storage values. Evidence URLs should remove URL credentials and query values. Output/capture surfaces are bounded.
 
-## API boundary
+## Dependency / supply-chain boundary
 
-- URL userinfo is rejected;
-- credential-bearing query values are redacted from public evidence;
-- request/response bodies are not exported;
-- credential header values are not exported;
-- redirects use `redirect: manual` so caller credentials are not automatically forwarded to a different target;
-- effectful methods require plan permission plus operator permission;
-- downstream postcondition verifiers are restricted to GET/HEAD/OPTIONS.
+- exact lock graph and exact direct dependency versions;
+- package remains private;
+- root install lifecycle hooks are absent;
+- lockfile registry packages require SHA-512 integrity metadata;
+- Perun runs `npm audit` plus registry signature/attestation verification when online;
+- the retained optional GitHub Actions validation workflow is manual-only and every third-party action reference is pinned to an immutable full commit SHA.
 
-## Browser/Game boundary
+## Codespaces usage data
 
-The packaged browser runtime is installed during controlled setup/build, not during calibration.
+The core-hour counter queries GitHub billing through `gh api`; the browser never receives the GitHub credential. The user billing summary endpoint can require Plan user read permission. If it is unavailable, the UI reports that limitation and uses only an explicitly labeled current-session estimate when possible.
 
-Game bridges must be realpath-contained beneath the plan directory, including symlink containment. Each scenario runs in its own browser context. Public observations are selected scalar metrics rather than raw game state.
+## Perun
 
-## Historical tracing
+`npm run perun` is the production-security gate. It checks secret material, dangerous execution primitives, remote runtime UI assets, launcher bootstrap/RCE patterns, Studio trust controls, Codespace/public-port policy, Actions trigger/action pinning, dependency pins/lock integrity, source syntax, regression/adversarial tests, dependency graph integrity, vulnerability audit and registry signatures/attestations.
 
-Historical tracing uses detached temporary Git worktrees. Evaluators receive an isolated HOME/TMP and a minimal environment by default. Parent environment variables are not silently inherited.
-
-## DDC boundary
-
-Private DDC implementation is not part of this repository.
-
-The optional provider protocol serializes only public allow-listed evidence. Product CI scans executable/product surfaces for private DDC implementation vocabulary.
-
-## Release integrity
-
-Release manifests reject:
-
-- absolute paths;
-- traversal paths;
-- non-canonical paths;
-- duplicate declared paths;
-- symlinks;
-- missing/unlisted files;
-- modified file content.
-
-Detached release signatures are Ed25519 only. A release cannot establish its own authenticity by bundling a public key beside its own signature; verification requires an independently supplied trusted public key.
-
-## Residual boundary
-
-Host-mode developer code is still developer code running on the host. API targets are developer-selected. Release-signing strength depends on production key protection. Browser/runtime freshness must be reviewed before each release line.
+`npm run perun:offline` deliberately skips registry-backed vulnerability/signature checks and must not be described as a full supply-chain vulnerability pass.

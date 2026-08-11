@@ -3,38 +3,26 @@
 Updated: 2026-08-11
 
 Canonical repository: `altrudev/Calibration-Studio`  
-Current preview line: `v0.11`  
-Historical packaged preview: `v0.11.0-alpha.0`
+Current source line: `v0.11.0-alpha.1`  
+Distribution/runtime direction: Codespaces-hosted Core + private tunnel + visual browser Studio.
 
-## Active product direction
+## Active product surface
 
-Calibration Studio now uses a **terminal-installed Core + locally served visual Studio** model. Large platform-specific standalone binaries and their build pipeline are retired.
+- no platform-specific standalone runtime binaries;
+- no local repository clone required for normal use;
+- tiny Windows/Linux/macOS Codespaces launchers;
+- lowest-core Codespace creation, start/restart and automatic one-retry recovery;
+- 15-minute idle timeout and 7-day retention defaults;
+- private local port tunnel to visual Studio;
+- monthly Codespaces core-hour counter with Free/Pro quota awareness and explicit fallback behavior;
+- loopback/Host/Origin/session-capability Studio trust boundary;
+- allow-listed command bridge with `shell:false` and sanitized Core subprocess environment;
+- Web/PWA, Browser Extension, API/Backend, CLI and Game adapters;
+- baseline/regression/history/trace/gate/repair lifecycle;
+- Intent IR, privacy bundles and artifact viewer;
+- GitHub App + isolated worker;
+- Perun production-security/vulnerability gate.
 
-The active repository now includes:
+`v0.11.0-alpha.0` remains historical extraction/cutover evidence only.
 
-- `npm start` / `npm run studio` local Studio launch;
-- automatic first-run locked dependency and pinned Chromium setup when required;
-- loopback-only Studio service at `127.0.0.1:4317`;
-- Windows `.cmd`, Linux `.sh` and macOS `.command` launchers;
-- a visual Run interface connected to the Calibration Core;
-- live runtime/Core status, visual results and JSON download;
-- the local integrity-verifying Artifact Viewer;
-- allow-listed Studio operations rather than an arbitrary shell bridge.
-
-## Core capability
-
-The repository remains authoritative for the Calibration engine, adapters, lifecycle, baselines, regression comparison, continuous gates, first-bad tracing, repair scopes, repair verification, Intent IR, privacy bundles, GitHub App integration and isolated GitHub worker.
-
-## Boundary
-
-Calibration Studio operates without private DDC implementation source. The optional DDC extension surface remains the versioned local provider protocol. DDC remains authoritative over DDC-owned expectations, plans and approved baselines.
-
-## Automation policy
-
-Local validation remains authoritative. GitHub Actions are optional manual validation only; there are no automatic push/PR/scheduled workflows and no hosted binary-build workflow.
-
-## Ecosystem ownership
-
-- Calibration Studio: `altrudev/Calibration-Studio`
-- DDC / Crystalline: `altrudev/ddc`
-- Human Translation Protocol + Human Translator: `altrudev/HTP`
+GitHub Actions remain optional and manual-only; no Codespaces prebuild or binary-build workflow is part of the active architecture.

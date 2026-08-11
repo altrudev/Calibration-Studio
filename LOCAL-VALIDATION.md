@@ -1,51 +1,31 @@
-# Local validation
+# Local / Codespace validation
 
-Calibration Studio is **local-first**. Validation runs locally or on operator-controlled machines by default. GitHub Actions are not required and never run automatically on push, pull request or schedule.
+Calibration Studio validation is operator-controlled. GitHub Actions are not required and do not run on push, pull request or schedule.
 
-Install the exact dependency graph first:
-
-```bash
-npm ci --ignore-scripts --no-audit --no-fund
-```
-
-Run the normal local gate:
+Normal source gate:
 
 ```bash
 npm run gate
 ```
 
-The default gate runs source syntax checks, regression tests, secret/key detection, hard-coded credential checks, execution-primitive checks, remote-runtime UI checks and the private-DDC implementation boundary guard.
-
-Additional local gates are explicit:
+Production-security gate:
 
 ```bash
-npm run gate:security
-npm run gate:supply-chain
-npm run runtime:install-browser
-npm run gate:runtime
-npm run gate:all
+npm run perun
 ```
 
-`gate:supply-chain` requires registry/network access. Browser runtime installation is explicit; calibration itself does not silently download browser executables.
+Perun includes source parsing, full regression/adversarial tests, dependency graph integrity, security-boundary static checks, dependency vulnerability audit and npm registry signature/attestation verification. Network access is therefore required for the complete Perun result.
 
-## Studio launch validation
-
-The visual Studio is started with:
+For intentionally offline development only:
 
 ```bash
-npm start
+npm run perun:offline
 ```
 
-or one of the OS launchers under `launch/`. The launcher may install missing locked dependencies and the pinned Chromium runtime as an explicit first-run setup action before starting the loopback-only Studio service.
+That mode skips registry vulnerability/signature checks and is not equivalent to a full security pass.
+
+The Codespace first-run setup installs the exact dependency graph with automatic root lifecycle scripts disabled, installs/verifies pinned Chromium, runs the normal gate and then runs full Perun.
 
 ## Optional GitHub workflow
 
-One GitHub workflow is retained only as a **manual operator tool** using `workflow_dispatch`:
-
-- `Optional - Calibration validation` mirrors a selected local gate on a GitHub-hosted Linux runner.
-
-There is no binary build workflow and no automatic `push`, `pull_request`, `schedule` or other trigger.
-
-## Distribution direction
-
-Large platform-specific standalone binaries are retired. The active direction is a terminal-installed Calibration Core plus a locally served browser Studio. The CLI remains available for automation and advanced workflows, while ordinary use should happen through the visual local web interface.
+The repository retains one `workflow_dispatch` validation workflow as an optional operator tool. It has no automatic trigger. Third-party Actions are pinned to immutable full commit SHAs. There is no hosted binary-build workflow and no Codespaces prebuild workflow.

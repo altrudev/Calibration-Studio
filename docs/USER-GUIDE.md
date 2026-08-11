@@ -1,86 +1,47 @@
 # Calibration Studio v0.11 user guide
 
-## Install once, then use the visual Studio
+## Normal start: no clone
 
-Requirements:
+Install GitHub CLI (`gh`) on your computer, then download **one** small launcher from the repository `launch/` directory for Windows, Ubuntu/Linux, or macOS. Do not clone Calibration Studio just to run it.
 
-- Node.js 24 or newer
-- Git
+Run the launcher. It will:
 
-Clone the repository once:
+1. verify/sign in to GitHub CLI;
+2. find the existing Calibration Studio Codespace, or create one on the lowest-core available machine;
+3. start it if stopped;
+4. run the Codespace setup and Calibration Studio service;
+5. open an authenticated private port tunnel from Codespace port 4317 to local `127.0.0.1:4317`;
+6. open the visual Studio in the default browser.
 
-```bash
-git clone https://github.com/altrudev/Calibration-Studio.git
-cd Calibration-Studio
-```
+To force a restart, invoke the launcher with `restart`. Normal startup also performs one automatic restart if the Codespace/Studio tunnel does not become healthy.
 
-Launch with the OS shortcut:
+## Core-hour counter
 
-- Windows: `launch/Calibration-Studio.cmd`
-- Ubuntu/Linux: `launch/calibration-studio.sh`
-- macOS: `launch/Calibration-Studio.command`
+The top-right Studio status shows Codespaces compute usage for the current billing month. When GitHub exposes the user billing summary to the current credential, the UI shows used core-hours, the personal Free/Pro included quota where applicable, remaining core-hours and a meter. GitHub billing reporting is not instantaneous.
 
-Or run:
+If billing-plan access is unavailable, Calibration Studio labels the counter unavailable and can show the current Codespace session estimate when the machine core count is available. It never substitutes the estimate for the official monthly total.
 
-```bash
-npm start
-```
+## Running Calibration
 
-The launcher performs first-run setup only when required: exact locked dependencies are installed with package lifecycle scripts disabled, the pinned Chromium test runtime is installed/verified, the loopback Studio service starts, and the browser opens to `http://127.0.0.1:4317`.
+Use the **Run** tab. Choose an operation, product type and required input paths/URLs. Paths refer to files available in the Codespace. Execution-authority checkboxes remain explicit for effectful API calls, CLI/Game execution, remote Game targets, persistent Game state and environment inheritance.
 
-Normal operation happens in the browser UI. The terminal remains the host process for the local service but requires no commands after launch.
+The visual Studio exposes Inspect, Discover, Capture, Calibrate, Baseline, Compare, Gate, Trace, Repair Scope, Verify Repair, Repair Rerun, Runtime, Adapters and Version through a fixed allow-list. It does not expose a general shell endpoint.
 
-## Visual operations
+## Evidence
 
-The Run view exposes the main Calibration Core operations without an arbitrary terminal bridge:
+The result panel shows live output and can download result JSON. Supported artifacts can be opened in the Artifact Viewer, which independently verifies deterministic fingerprints before presenting supported evidence as valid.
 
-- Inspect project
-- Discover contract
-- Capture observations
-- Calibrate
-- Create baseline
-- Compare to baseline
-- Continuous gate
-- Trace first bad
-- Repair scope
-- Verify repair
-- Repair rerun
-- Runtime / adapter / product status
+## Codespace lifecycle
 
-Execution-sensitive actions keep explicit operator controls for CLI execution, effectful API plans, remote game targets, persistent state, headed browser runs and environment inheritance.
+The default launcher requests a 15-minute idle timeout and 7-day retention. A stopped Codespace does not consume compute time but can continue to consume storage until deleted. The launcher reuses the most recently used Calibration Studio Codespace for this repository rather than creating a new one each run.
 
-Results are shown live in the Studio and can be downloaded as JSON. Supported Calibration artifacts can also be opened in the local artifact viewer.
+## Developer validation
 
-## Local service boundary
-
-Calibration Studio binds to loopback only by default:
-
-```text
-http://127.0.0.1:4317
-```
-
-The server exposes a small local API and an allow-listed command mapper. User input is converted into known Calibration CLI arguments and executed with `shell:false`; arbitrary shell commands are not accepted.
-
-Useful endpoints for development are:
-
-```text
-GET  /api/health
-GET  /api/status
-POST /api/command
-```
-
-## CLI remains available
-
-The CLI is still the automation surface for scripts, Git hooks and advanced workflows:
+Inside the repository/Codespace:
 
 ```bash
-node bin/calibrate-entry.js adapters
-node bin/calibrate-entry.js discover --type web-pwa --project /path/to/project
-node bin/calibrate-entry.js capture --type web-pwa --url http://127.0.0.1:8080
+npm run gate
+npm run perun
 ```
 
-For ordinary interactive use, prefer the visual Studio.
-
-## Artifact viewer
-
-The Artifact Viewer tab reads supported JSON artifacts locally in the browser and verifies supported artifact fingerprints before rendering them as valid evidence.
+Perun performs the production-security/vulnerability gate, including registry-backed vulnerability and signature checks. `npm run perun:offline` is available only for explicitly offline static/regression validation and does not claim dependency-vulnerability coverage.

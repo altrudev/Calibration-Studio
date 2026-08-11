@@ -1,89 +1,67 @@
 # Calibration Studio architecture
 
-Calibration Studio v0.11 is a standalone software-assurance product. It no longer imports private DDC implementation source.
+Calibration Studio is a software-assurance product with a Codespaces-hosted normal runtime and a browser-based control plane.
 
-## Interactive product boundary
+## User-facing runtime
 
 ```text
-OS launcher / npm start
+Windows / Linux / macOS launcher
         ↓
-first-run bootstrap
+GitHub CLI
         ↓
-Calibration Studio local service
-        │
-        ├── serves local UI assets
-        ├── GET /api/health
-        ├── GET /api/status
-        └── POST /api/command
-                ↓
-        allow-listed argument mapper
-                ↓
-        Calibration Core / adapters
+Calibration Studio Codespace
+        ↓
+Calibration Core
+        ↓
+loopback Studio HTTP service :4317
+        ↓
+authenticated private `gh codespace ports forward`
+        ↓
+local browser dashboard
 ```
 
-The local service binds to loopback only. It does not expose an arbitrary shell. Studio commands are mapped to known Calibration operations and are executed through explicit argv with `shell:false`.
+The local computer does not need a Calibration Studio clone or a Node runtime. The tiny launcher controls Codespace lifecycle and the tunnel only.
 
-## Public product flow
+## Codespace lifecycle
+
+The launcher reuses an existing repository-scoped Codespace when possible, requests the lowest-core available machine on creation, uses a 15-minute idle timeout and a 7-day retention period, and can force or automatically attempt a restart. The repository intentionally has no Codespaces prebuild configuration.
+
+The devcontainer uses GitHub's default container image rather than introducing a product-owned runtime image. `postCreateCommand` installs the exact locked dependency graph and pinned Chromium runtime and runs validation; `postStartCommand` starts the Studio service.
+
+## Studio trust boundary
+
+The Studio service binds only to loopback. Requests must carry a loopback Host header. Mutation requests additionally require an allowed same-origin Origin when present and a random per-process session capability kept only in browser memory. No CORS trust is granted.
+
+The browser API maps structured fields to a fixed allow-list of Calibration commands. It does not accept shell text. Core subprocesses run with `shell:false` and receive a minimal allow-listed environment so Codespace/GitHub credentials are not inherited by tested software even when downstream test plans opt into environment inheritance.
+
+## Calibration lifecycle
 
 ```text
 Developer-owned intent / contract
         ↓
-Adapter discovery or developer plan
+Adapter discovery or plan
         ↓
-Normalized public observations
+Normalized observations
         ↓
-Calibration engine
-        ↓
-Report
+Calibration report
         ↓
 Immutable baseline
         ↓
-Continuous gate / comparison
+Comparison / continuous gate
         ↓
-Historical first-bad trace
+First-bad lineage
         ↓
-Affected repair scope
+Repair scope
         ↓
 Repair verification
-        ↓
-Privacy-profiled bundle / release evidence
 ```
 
-## Candidate adapters
+Candidate adapters: Web/PWA, Browser Extension, API/Backend, CLI and Game.
 
-- Web / PWA
-- Browser Extension
-- API / Backend
-- CLI
-- Game
+## DDC boundary
 
-Desktop, Android, Service and Custom Adapter SDK remain reserved product directions rather than implicit runtime claims.
+Calibration Studio does not contain private DDC implementation source. The optional local DDC provider remains a versioned, allow-listed integration. DDC can separately invoke canonical Calibration Studio for self-calibration without creating a source-level circular dependency.
 
-## Authority model
+## Billing telemetry boundary
 
-Discovery is evidence, not authority. Inferred checks are always `reviewed:false` until a developer confirms or replaces them.
-
-Developer-owned plans and immutable approved baselines remain authoritative. Calibration Studio does not silently rewrite an approved baseline to make a regression pass.
-
-## Optional DDC provider
-
-Calibration Studio may call a local private DDC provider through:
-
-- `altru-calibration-ddc-provider/0.1`
-- `altru-calibration-ddc-provider-result/0.1`
-
-Provider output is allow-listed to public reason/evidence fields. Private DDC implementation machinery is outside the product contract.
-
-The product remains fully functional without a DDC provider.
-
-## Runtime boundary
-
-Browser adapters use exact Playwright `1.62.1` and its locally installed Chromium runtime. The explicit first-run launcher may acquire that runtime during setup; calibration actions do not download browsers implicitly.
-
-CLI execution uses explicit argv with `shell:false`. It defaults to a copied workspace and temporary HOME. Full parent-environment inheritance requires both plan intent and operator authority.
-
-Historical tracing uses detached temporary Git worktrees and a minimal environment by default.
-
-## Artifact integrity
-
-Lifecycle, trace, repair, Intent and bundle artifacts use deterministic SHA-256 fingerprints and stable public IDs. The local viewer independently verifies supported artifact fingerprints before rendering them as valid evidence.
+Calibration Studio has no product telemetry. The core-hour card reads the authenticated user's GitHub billing summary through GitHub CLI when the credential is authorized. The browser never receives a GitHub token. Only aggregate Codespaces usage and current Codespace machine metadata are returned to the local Studio UI.

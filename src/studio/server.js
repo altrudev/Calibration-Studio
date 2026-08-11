@@ -1,11 +1,13 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const { spawn } = require("node:child_process");
 
 const pkg = require("../../package.json");
+const { collectCodespacesUsage } = require("../codespaces/usage");
 const repoRoot = path.resolve(__dirname, "../..");
 const uiRoot = path.join(repoRoot, "ui");
 const entryFile = path.join(repoRoot, "bin", "calibrate-entry.js");
@@ -100,6 +102,20 @@ function buildCommandArgs(input = {}) {
   return args;
 }
 
+
+function coreEnvironment(env = process.env) {
+  const allowed = new Set([
+    "PATH", "HOME", "USERPROFILE", "TMPDIR", "TMP", "TEMP",
+    "SystemRoot", "SYSTEMROOT", "SystemDrive", "SYSTEMDRIVE", "ComSpec", "COMSPEC",
+    "PATHEXT", "LANG", "LC_ALL", "TERM", "PLAYWRIGHT_BROWSERS_PATH"
+  ]);
+  const out = {};
+  for (const [key, value] of Object.entries(env || {})) {
+    if (allowed.has(key) && typeof value === "string") out[key] = value;
+  }
+  return out;
+}
+
 function runCalibration(input, { timeoutMs = 10 * 60 * 1000 } = {}) {
   const args = buildCommandArgs(input);
   return new Promise((resolve, reject) => {
@@ -107,7 +123,7 @@ function runCalibration(input, { timeoutMs = 10 * 60 * 1000 } = {}) {
       cwd: repoRoot,
       shell: false,
       windowsHide: true,
-      env: { ...process.env }
+      env: coreEnvironment(process.env)
     });
     let stdout = "";
     let stderr = "";
@@ -169,6 +185,11 @@ function statusPayload(host, port) {
     platform: process.platform,
     arch: process.arch,
     service: { status: "ready", host, port, loopback_only: true },
+    codespace: {
+      active: Boolean(process.env.CODESPACES || process.env.CODESPACE_NAME),
+      name: process.env.CODESPACE_NAME || null,
+      repository: process.env.GITHUB_REPOSITORY || null
+    },
     browser
   };
 }
@@ -190,6 +211,7 @@ function securityHeaders(res) {
   res.setHeader("x-frame-options", "DENY");
   res.setHeader("x-content-type-options", "nosniff");
   res.setHeader("cross-origin-resource-policy", "same-origin");
+  res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
 }
 
 function readJsonBody(req) {
@@ -242,23 +264,82 @@ function serveStatic(reqPath, res) {
   return true;
 }
 
-function createStudioServer({ host = DEFAULT_HOST, port = DEFAULT_PORT, runner = runCalibration } = {}) {
+function requestPort(server, configuredPort) {
+  return Number(server.address()?.port) || configuredPort;
+}
+
+function allowedHost(req, port) {
+  const host = String(req.headers.host || "").toLowerCase();
+  return new Set([
+    `127.0.0.1:${port}`,
+    `localhost:${port}`,
+    `[::1]:${port}`
+  ]).has(host);
+}
+
+function allowedOrigin(req, port) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const value = String(origin).toLowerCase();
+  return new Set([
+    `http://127.0.0.1:${port}`,
+    `http://localhost:${port}`,
+    `http://[::1]:${port}`
+  ]).has(value);
+}
+
+function secureTokenEqual(actual, expected) {
+  if (typeof actual !== "string" || typeof expected !== "string") return false;
+  const left = Buffer.from(actual);
+  const right = Buffer.from(expected);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function createStudioServer({
+  host = DEFAULT_HOST,
+  port = DEFAULT_PORT,
+  runner = runCalibration,
+  usageCollector = collectCodespacesUsage,
+  sessionStartedAt = new Date()
+} = {}) {
   if (host !== "127.0.0.1" && host !== "::1" && host !== "localhost") {
     throw new Error("Calibration Studio may only bind to a loopback interface");
   }
+  const sessionToken = crypto.randomBytes(32).toString("base64url");
   const server = http.createServer(async (req, res) => {
     securityHeaders(res);
+    const activePort = requestPort(server, port);
+    if (!allowedHost(req, activePort)) {
+      return sendJson(res, 421, { error: "Calibration Studio accepts loopback Host headers only" });
+    }
+
     let url;
-    try { url = new URL(req.url || "/", `http://${host}:${port}`); }
+    try { url = new URL(req.url || "/", `http://${host}:${activePort}`); }
     catch { return sendJson(res, 400, { error: "Invalid request URL" }); }
 
     if (req.method === "GET" && url.pathname === "/api/health") {
       return sendJson(res, 200, { status: "ready", product: "Calibration Studio", version: pkg.version });
     }
     if (req.method === "GET" && url.pathname === "/api/status") {
-      return sendJson(res, 200, statusPayload(host, server.address()?.port || port));
+      return sendJson(res, 200, statusPayload(host, activePort));
+    }
+    if (req.method === "GET" && url.pathname === "/api/session") {
+      return sendJson(res, 200, { token: sessionToken });
+    }
+    if (req.method === "GET" && url.pathname === "/api/codespaces/usage") {
+      if (!secureTokenEqual(req.headers["x-calibration-session"], sessionToken)) {
+        return sendJson(res, 403, { error: "Studio session token required" });
+      }
+      const usage = await usageCollector({ sessionStartedAt });
+      return sendJson(res, 200, usage);
     }
     if (req.method === "POST" && url.pathname === "/api/command") {
+      if (!allowedOrigin(req, activePort)) {
+        return sendJson(res, 403, { error: "Cross-origin Studio commands are not allowed" });
+      }
+      if (!secureTokenEqual(req.headers["x-calibration-session"], sessionToken)) {
+        return sendJson(res, 403, { error: "Studio session token required" });
+      }
       if (!String(req.headers["content-type"] || "").toLowerCase().startsWith("application/json")) {
         return sendJson(res, 415, { error: "Studio commands require application/json" });
       }
@@ -291,9 +372,13 @@ module.exports = {
   DEFAULT_HOST,
   DEFAULT_PORT,
   ALLOWED_OPERATIONS,
+  allowedHost,
+  allowedOrigin,
   buildCommandArgs,
+  coreEnvironment,
   createStudioServer,
   listen,
   runCalibration,
+  secureTokenEqual,
   statusPayload
 };

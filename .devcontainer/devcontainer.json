@@ -1,0 +1,15 @@
+{
+  "name": "Calibration Studio",
+  "forwardPorts": [4317],
+  "portsAttributes": {
+    "4317": {
+      "label": "Calibration Studio",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "bash scripts/codespace-setup.sh",
+  "postStartCommand": "bash scripts/codespace-studio-start.sh",
+  "hostRequirements": {
+    "cpus": 2
+  }
+}
