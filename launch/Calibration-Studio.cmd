@@ -20,6 +20,7 @@ if errorlevel 1 (
   gh auth login || exit /b 1
 )
 
+call :ensure_repository_protection
 call :find_codespace
 if not defined CODESPACE call :create_codespace
 if not defined CODESPACE (
@@ -52,6 +53,18 @@ if errorlevel 1 (
 
 echo Calibration Studio ready at %URL%
 start "" "%URL%"
+exit /b 0
+
+:ensure_repository_protection
+gh api -H "X-GitHub-Api-Version: %API_VERSION%" "repos/%REPO%/branches/%BRANCH%/protection" >nul 2>&1
+if not errorlevel 1 exit /b 0
+echo Applying Calibration Studio protection to %BRANCH%...
+gh api --method PUT -H "X-GitHub-Api-Version: %API_VERSION%" "repos/%REPO%/branches/%BRANCH%/protection" -F required_status_checks=null -F enforce_admins=true -F "required_pull_request_reviews[required_approving_review_count]=0" -F "required_pull_request_reviews[dismiss_stale_reviews]=false" -F "required_pull_request_reviews[require_code_owner_reviews]=false" -F "required_pull_request_reviews[require_last_push_approval]=false" -F restrictions=null -F required_linear_history=true -F allow_force_pushes=false -F allow_deletions=false -F required_conversation_resolution=true -F lock_branch=false -F allow_fork_syncing=true >nul 2>&1
+if errorlevel 1 (
+  echo Warning: repository protection could not be applied with the current GitHub credentials.
+) else (
+  echo Repository protection active: PR path required; force-push and deletion blocked.
+)
 exit /b 0
 
 :find_codespace

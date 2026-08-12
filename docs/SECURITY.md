@@ -9,7 +9,8 @@ Calibration Studio executes developer-selected software, so execution authority,
 - the dedicated Codespace requests the lowest-core available machine, 15-minute idle timeout and 7-day retention;
 - no Codespaces prebuild is configured;
 - Studio port 4317 is not configured public; the normal connection is an authenticated private GitHub CLI port-forward;
-- forced restart and one automatic recovery restart are lifecycle operations only, not arbitrary remote execution interfaces.
+- forced restart and one automatic recovery restart are lifecycle operations only, not arbitrary remote execution interfaces;
+- owner-capable launchers check branch protection and, when absent, apply a protected `main` policy requiring the pull-request path, linear history and resolved conversations while blocking force-pushes and branch deletion. Launchers without repository administration permission warn and continue without changing repository settings.
 
 ## Studio HTTP/API boundary
 
@@ -26,11 +27,13 @@ Calibration Studio executes developer-selected software, so execution authority,
 
 ## Execution authority
 
-CLI and Game execution, historical tracing and continuous evaluation retain explicit operator confirmation. Effectful API calls, remote Game targets, persistent Game state and CLI parent-environment inheritance require the existing dual plan/operator authority. Workspace-copy isolation is not represented as an OS sandbox; container mode remains the stronger boundary where configured.
+CLI and Game execution, historical tracing and continuous evaluation retain explicit operator confirmation. Effectful API calls, remote Game targets, persistent Game state and CLI parent-environment inheritance require the existing dual plan/operator authority. Workspace-copy isolation is not represented as an OS sandbox.
+
+CLI container mode is the stronger generic execution boundary. It now refuses implicit image pulls during calibration (`--pull never`), drops all Linux capabilities, sets `no-new-privileges`, applies PID/memory/CPU ceilings, uses a read-only container root by default, gives `/tmp` and the calibration home bounded `nosuid,nodev` tmpfs mounts, and keeps container networking `none` unless the plan explicitly requests bridge networking. The project workspace remains the only writable bind mount needed for behavioral calibration.
 
 ## Evidence privacy
 
-Recognized secrets are redacted from exported evidence and bundles. Browser observations expose storage key topology rather than local-storage values. Evidence URLs should remove URL credentials and query values. Output/capture surfaces are bounded.
+Recognized secrets are redacted from exported evidence and bundles. Browser observations expose storage key topology rather than local-storage values. Evidence URLs remove URL credentials and query values. Output/capture surfaces are bounded.
 
 ## Dependency / supply-chain boundary
 
@@ -38,7 +41,7 @@ Recognized secrets are redacted from exported evidence and bundles. Browser obse
 - package remains private;
 - root install lifecycle hooks are absent;
 - lockfile registry packages require SHA-512 integrity metadata;
-- Perun runs `npm audit` plus registry signature/attestation verification when online;
+- Perun runs `npm audit --audit-level=low` plus registry signature/attestation verification when online;
 - the retained optional GitHub Actions validation workflow is manual-only and every third-party action reference is pinned to an immutable full commit SHA.
 
 ## Codespaces usage data
@@ -47,6 +50,6 @@ The core-hour counter queries GitHub billing through `gh api`; the browser never
 
 ## Perun
 
-`npm run perun` is the production-security gate. It checks secret material, dangerous execution primitives, remote runtime UI assets, launcher bootstrap/RCE patterns, Studio trust controls, Codespace/public-port policy, Actions trigger/action pinning, dependency pins/lock integrity, source syntax, regression/adversarial tests, dependency graph integrity, vulnerability audit and registry signatures/attestations.
+`npm run perun` is the production-security gate. It checks secret material, dangerous execution primitives, remote runtime UI assets, launcher bootstrap/RCE patterns, Studio trust controls, Codespace/public-port policy, launcher branch-protection policy, generic CLI container isolation, Actions trigger/action pinning, dependency pins/lock integrity, source syntax, regression/adversarial tests, dependency graph integrity, vulnerability audit and registry signatures/attestations.
 
 `npm run perun:offline` deliberately skips registry-backed vulnerability/signature checks and must not be described as a full supply-chain vulnerability pass.

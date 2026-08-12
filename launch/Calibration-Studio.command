@@ -17,6 +17,32 @@ if ! gh auth status >/dev/null 2>&1; then
   gh auth login
 fi
 
+ensure_repository_protection() {
+  if gh api -H "X-GitHub-Api-Version: ${API_VERSION}" "repos/${REPO}/branches/${BRANCH}/protection" >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "Applying Calibration Studio protection to ${BRANCH}..."
+  if gh api --method PUT -H "X-GitHub-Api-Version: ${API_VERSION}" \
+    "repos/${REPO}/branches/${BRANCH}/protection" \
+    -F required_status_checks=null \
+    -F enforce_admins=true \
+    -F 'required_pull_request_reviews[required_approving_review_count]=0' \
+    -F 'required_pull_request_reviews[dismiss_stale_reviews]=false' \
+    -F 'required_pull_request_reviews[require_code_owner_reviews]=false' \
+    -F 'required_pull_request_reviews[require_last_push_approval]=false' \
+    -F restrictions=null \
+    -F required_linear_history=true \
+    -F allow_force_pushes=false \
+    -F allow_deletions=false \
+    -F required_conversation_resolution=true \
+    -F lock_branch=false \
+    -F allow_fork_syncing=true >/dev/null 2>&1; then
+    echo "Repository protection active: PR path required; force-push and deletion blocked."
+  else
+    echo "Warning: repository protection could not be applied with the current GitHub credentials." >&2
+  fi
+}
+
 find_codespace() {
   gh codespace list -R "$REPO" -L 30 --json name,lastUsedAt \
     --jq 'sort_by(.lastUsedAt) | reverse | .[0].name // ""'
@@ -66,7 +92,6 @@ restart_codespace() {
 }
 
 prepare_remote_studio() {
-  # Fast-forward only; never reset or discard user changes.
   gh codespace ssh -c "$CODESPACE" \
     "cd /workspaces/Calibration-Studio && (git pull --ff-only origin main || true) && bash scripts/codespace-studio-start.sh" \
     >/dev/null
@@ -100,6 +125,8 @@ open_dashboard() {
     xdg-open "$URL" >/dev/null 2>&1 || true
   fi
 }
+
+ensure_repository_protection
 
 CODESPACE="$(find_codespace)"
 if [[ -z "$CODESPACE" ]]; then

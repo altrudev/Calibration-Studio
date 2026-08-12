@@ -1,6 +1,6 @@
 {
   "name": "@altrudev/calibration-studio",
-  "version": "0.11.0-alpha.1",
+  "version": "0.11.0-alpha.2",
   "private": true,
   "description": "Calibration Studio core with universal adapters, deterministic lifecycle, Intent IR, a Codespaces-served visual Studio, release integrity, and an optional private DDC provider boundary.",
   "license": "UNLICENSED",

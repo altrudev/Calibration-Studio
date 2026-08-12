@@ -100,7 +100,7 @@ function staticBoundaryAudit() {
     }
   }
 
-  for (const file of walk("ui") {
+  for (const file of walk("ui")) {
     if (!/\.(?:html?|js|css)$/i.test(file)) continue;
     if (/<(?:script|link)\b[^>]+https?:\/\//i.test(text(file))) {
       fail("PERUN-REMOTE-UI", `remote runtime asset in ${rel(file)}`);
@@ -111,8 +111,12 @@ function staticBoundaryAudit() {
     const value = text(file);
     assert(value.includes("15m"), "PERUN-LAUNCHER-IDLE", `${rel(file)} must retain the 15-minute Codespace idle timeout`);
     assert(value.includes("168h"), "PERUN-LAUNCHER-RETENTION", `${rel(file)} must retain the 7-day Codespace retention period`);
+    assert(value.includes("branches/") && value.includes("/protection"), "PERUN-LAUNCHER-BRANCH-PROTECTION", `${rel(file)} must check/apply main branch protection`);
+    assert(value.includes("allow_force_pushes=false"), "PERUN-LAUNCHER-FORCE-PUSH", `${rel(file)} must disable force pushes`);
+    assert(value.includes("allow_deletions=false"), "PERUN-LAUNCHER-DELETION", `${rel(file)} must disable protected-branch deletion`);
+    assert(value.includes("required_pull_request_reviews"), "PERUN-LAUNCHER-PR-PATH", `${rel(file)} must require the pull-request path`);
     const dangerousBootstrap = [
-      /curl[^\n|]|*\p\s*(?:sh|bash)\b/i,
+      /curl[^\n|]*\|\s*(?:sh|bash)\b/i,
       /wget[^\n|]*\|\s*(?:sh|bash)\b/i,
       /\bInvoke-Expression\b/i,
       /\biex\s*\(/i,
@@ -123,8 +127,17 @@ function staticBoundaryAudit() {
     }
   }
 
-  const serverFile = path.join(repoRoot, "src/studio/server.js");
-  const server = text(serverFile);
+  const processDriver = text(path.join(repoRoot, "src/adapters/cli/process-driver.js"));
+  for (const [needle, code, message] of [
+    ['"--pull", "never"', "PERUN-CLI-CONTAINER-PULL", "CLI container must refuse implicit image pulls"],
+    ['"--cap-drop", "ALL"', "PERUN-CLI-CONTAINER-CAPS", "CLI container must drop all Linux capabilities"],
+    ['"--security-opt", "no-new-privileges"', "PERUN-CLI-CONTAINER-NNP", "CLI container must set no-new-privileges"],
+    ['"--pids-limit"', "PERUN-CLI-CONTAINER-PIDS", "CLI container must enforce a PID ceiling"],
+    ['"--memory"', "PERUN-CLI-CONTAINER-MEMORY", "CLI container must enforce a memory ceiling"],
+    ['"--cpus"', "PERUN-CLI-CONTAINER-CPU", "CLI container must enforce a CPU ceiling"]
+  ]) assert(processDriver.includes(needle), code, message);
+
+  const server = text(path.join(repoRoot, "src/studio/server.js"));
   assert(server.includes("loopback Host headers only"), "PERUN-STUDIO-HOST", "Studio Host-header defense is missing");
   assert(server.includes("Cross-origin Studio commands are not allowed"), "PERUN-STUDIO-ORIGIN", "Studio Origin defense is missing");
   assert(server.includes("Studio session token required"), "PERUN-STUDIO-TOKEN", "Studio session capability check is missing");
