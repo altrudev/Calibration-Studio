@@ -14,6 +14,8 @@ const { FileWorkerQueue } = require("../src/integrations/github-app/worker-queue
 const { normalizeGithubContinuousPlan } = require("../src/integrations/github-app/worker-policy");
 const { createDockerSandboxExecutor } = require("../src/integrations/github-app/docker-sandbox");
 
+const PINNED_IMAGE = `calibration-sandbox@sha256:${"a".repeat(64)}`;
+
 function webhookPayload() {
   return {
     action: "synchronize",
@@ -112,6 +114,13 @@ test("GitHub worker plans cannot inherit host environment variables", () => {
   }, "a".repeat(40)), /may not inherit host environment/);
 });
 
+test("Docker executor requires an immutable image digest", () => {
+  assert.throws(
+    () => createDockerSandboxExecutor({ image: "calibration-sandbox:test" }),
+    /must be pinned by immutable sha256 digest/
+  );
+});
+
 test("Docker executor applies the mandatory isolation flags", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "calibration-docker-test-"));
   const snapshot = path.join(root, "snapshot");
@@ -121,7 +130,7 @@ test("Docker executor applies the mandatory isolation flags", async () => {
   fs.writeFileSync(runner, "// runner");
   let argsSeen;
   const executor = createDockerSandboxExecutor({
-    image: "calibration-sandbox:test",
+    image: PINNED_IMAGE,
     runnerPath: runner,
     spawnImpl: (_command, args) => {
       argsSeen = args;
