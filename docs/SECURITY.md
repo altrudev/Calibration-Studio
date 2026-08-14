@@ -29,7 +29,9 @@ Calibration Studio executes developer-selected software, so execution authority,
 
 CLI and Game execution, historical tracing and continuous evaluation retain explicit operator confirmation. Effectful API calls, remote Game targets, persistent Game state and CLI parent-environment inheritance require the existing dual plan/operator authority. Workspace-copy isolation is not represented as an OS sandbox.
 
-CLI container mode is the stronger generic execution boundary. It now refuses implicit image pulls during calibration (`--pull never`), drops all Linux capabilities, sets `no-new-privileges`, applies PID/memory/CPU ceilings, uses a read-only container root by default, gives `/tmp` and the calibration home bounded `nosuid,nodev` tmpfs mounts, and keeps container networking `none` unless the plan explicitly requests bridge networking. The project workspace remains the only writable bind mount needed for behavioral calibration.
+CLI container mode is the stronger generic execution boundary. Container images must be pinned by immutable SHA-256 digest; mutable tags are rejected before execution. The runtime refuses implicit image pulls during calibration (`--pull never`), drops all Linux capabilities, sets `no-new-privileges`, applies PID/memory/CPU ceilings, uses a read-only container root by default, gives `/tmp` and the calibration home bounded `nosuid,nodev` tmpfs mounts, and keeps container networking `none` unless the plan explicitly requests bridge networking. The project workspace remains the only writable bind mount needed for behavioral calibration.
+
+The GitHub worker sandbox uses the same immutable-image identity rule. Its execution profile remains stricter than the generic CLI path: no network, read-only root, dropped capabilities, `no-new-privileges`, bounded PID/memory/CPU resources, non-root user, read-only input/control mounts and an isolated output mount. Sharing the image-identity rule does not merge the two executors or their authority boundaries.
 
 ## Evidence privacy
 
@@ -42,7 +44,7 @@ Recognized secrets are redacted from exported evidence and bundles. Browser obse
 - root install lifecycle hooks are absent;
 - lockfile registry packages require SHA-512 integrity metadata;
 - Perun runs `npm audit --audit-level=low` plus registry signature/attestation verification when online;
-- the retained optional GitHub Actions validation workflow is manual-only and every third-party action reference is pinned to an immutable full commit SHA.
+- GitHub Actions workflows are not part of the validation architecture; a regression test fails if a workflow is reintroduced.
 
 ## Codespaces usage data
 
@@ -50,6 +52,6 @@ The core-hour counter queries GitHub billing through `gh api`; the browser never
 
 ## Perun
 
-`npm run perun` is the production-security gate. It checks secret material, dangerous execution primitives, remote runtime UI assets, launcher bootstrap/RCE patterns, Studio trust controls, Codespace/public-port policy, launcher branch-protection policy, generic CLI container isolation, Actions trigger/action pinning, dependency pins/lock integrity, source syntax, regression/adversarial tests, dependency graph integrity, vulnerability audit and registry signatures/attestations.
+`npm run perun` is the production-security gate. It checks secret material, dangerous execution primitives, remote runtime UI assets, launcher bootstrap/RCE patterns, Studio trust controls, Codespace/public-port policy, launcher branch-protection policy, generic CLI container isolation, dependency pins/lock integrity, source syntax, regression/adversarial tests, dependency graph integrity, vulnerability audit and registry signatures/attestations.
 
 `npm run perun:offline` deliberately skips registry-backed vulnerability/signature checks and must not be described as a full supply-chain vulnerability pass.
