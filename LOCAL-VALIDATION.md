@@ -1,6 +1,6 @@
 # Local / Codespace validation
 
-Calibration Studio validation is operator-controlled. GitHub Actions are not required and do not run on push, pull request or schedule.
+Calibration Studio validation is operator-controlled and local/manual by architecture. GitHub Actions are not part of the validation path.
 
 Normal source gate:
 
@@ -26,6 +26,8 @@ That mode skips registry vulnerability/signature checks and is not equivalent to
 
 The Codespace first-run setup installs the exact dependency graph with automatic root lifecycle scripts disabled, installs/verifies pinned Chromium, runs the normal gate and then runs full Perun.
 
-## Optional GitHub workflow
+## CI policy
 
-The repository retains one `workflow_dispatch` validation workflow as an optional operator tool. It has no automatic trigger. Third-party Actions are pinned to immutable full commit SHAs. There is no hosted binary-build workflow and no Codespaces prebuild workflow.
+No `.github/workflows/*.yml` or `.yaml` validation workflow is retained. Pushes and pull requests do not trigger GitHub-hosted validation. The repository test suite includes a regression guard that fails if a GitHub Actions workflow is reintroduced.
+
+Validation evidence must come from the local/Codespace gates above or another explicitly controlled execution environment, not from an implicit hosted CI path.

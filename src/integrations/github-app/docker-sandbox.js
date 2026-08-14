@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { requirePinnedImage } = require("../../security/container-policy");
 
 function positiveNumber(value, fallback, min, max, label) {
   const number = Number(value ?? fallback);
@@ -12,8 +13,7 @@ function positiveNumber(value, fallback, min, max, label) {
 }
 
 function safeImage(value) {
-  if (typeof value !== "string" || !value.trim() || /[\s\0]/.test(value)) throw new Error("CALIBRATION_GITHUB_SANDBOX_IMAGE must name a pre-provisioned container image");
-  return value.trim();
+  return requirePinnedImage(value, "CALIBRATION_GITHUB_SANDBOX_IMAGE");
 }
 
 function createDockerSandboxExecutor({ dockerCommand = "docker", image, memoryMb = 2048, cpus = 2, pidsLimit = 256, timeoutMs = 15 * 60 * 1000, runnerPath = path.join(__dirname, "sandbox-runner.js"), spawnImpl = spawnSync } = {}) {
