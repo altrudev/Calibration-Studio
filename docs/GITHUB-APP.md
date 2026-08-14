@@ -105,13 +105,13 @@ POST /github/webhook
 
 ## Worker runtime
 
-The worker needs the GitHub App identity, worker-dispatch secret and a pre-provisioned container image:
+The worker needs the GitHub App identity, worker-dispatch secret and a pre-provisioned, immutable digest-pinned container image:
 
 ```text
 CALIBRATION_GITHUB_APP_ID=<same app id>
 CALIBRATION_GITHUB_PRIVATE_KEY_FILE=/secure/path/github-app.private-key.pem
 CALIBRATION_GITHUB_WORKER_SECRET=<same worker secret>
-CALIBRATION_GITHUB_SANDBOX_IMAGE=<local image containing Node 24 and required evaluator tooling>
+CALIBRATION_GITHUB_SANDBOX_IMAGE=calibration-sandbox@sha256:<64-hex-digest>
 ```
 
 Worker settings:
@@ -166,7 +166,7 @@ The built-in worker uses Docker with hard security defaults:
 - no GitHub token, App key, webhook secret or worker secret in the container;
 - no inherited host environment variables.
 
-The sandbox image is **not pulled automatically**. Provision and inspect it separately. It must provide Node.js 24 because the sandbox runner is Node-based, plus any evaluator/runtime tooling required by the base-owned calibration plan.
+The sandbox image is **not pulled automatically** and mutable image tags are rejected. Provision and inspect the image separately, then reference it by immutable SHA-256 digest. It must provide Node.js 24 because the sandbox runner is Node-based, plus any evaluator/runtime tooling required by the base-owned calibration plan.
 
 Network access is intentionally unsupported in the GitHub worker v0.1 sandbox. Use pre-provisioned dependencies and local targets. Remote-target calibration belongs behind a separately reviewed executor policy rather than being silently enabled for PR code.
 
