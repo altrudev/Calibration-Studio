@@ -41,10 +41,20 @@ test("quantity conversion handles hour, minute and second billing units", () => 
   assert.equal(quantityToHours(7200, "seconds"), 2);
 });
 
-test("billing parser does not double-multiply an explicit core-hour unit", () => {
+test("billing parser does not double-multiply explicit core-time units", () => {
   const parsed = parseCodespacesUsage({ usageItems: [
-    { product: "Codespaces", sku: "codespaces_compute_d4", grossQuantity: 12, unitType: "core-hours", grossAmount: 0 }
+    { product: "Codespaces", sku: "codespaces_compute_d4", grossQuantity: 12.25, unitType: "core-hours", grossAmount: 0 },
+    { product: "Codespaces", sku: "codespaces_compute_d4", grossQuantity: 30, unitType: "core-minutes", grossAmount: 0 },
+    { product: "Codespaces", sku: "codespaces_compute_d8", grossQuantity: 1800, unitType: "core-seconds", grossAmount: 0 }
   ] });
-  assert.equal(parsed.core_hours, 12);
-  assert.equal(parsed.machine_hours, 3);
+  assert.equal(parsed.core_hours, 13.25);
+  assert.equal(parsed.machine_hours, 3.21875);
+});
+
+test("billing parser matches machine-second normalization used by the Platform adapter", () => {
+  const parsed = parseCodespacesUsage({ usageItems: [
+    { product: "Codespaces", sku: "codespaces_compute_d2", grossQuantity: 1800, unitType: "seconds", grossAmount: 0 },
+    { product: "Codespaces", sku: "codespaces_compute_d8", grossQuantity: 1800, unitType: "core-seconds", grossAmount: 0 }
+  ] });
+  assert.equal(parsed.core_hours, 1.5);
 });
