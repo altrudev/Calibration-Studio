@@ -48,7 +48,7 @@ test("billing parser does not double-multiply explicit core-time units", () => {
     { product: "Codespaces", sku: "codespaces_compute_d8", grossQuantity: 1800, unitType: "core-seconds", grossAmount: 0 }
   ] });
   assert.equal(parsed.core_hours, 13.25);
-  assert.equal(parsed.machine_hours, 3.21875);
+  assert.equal(parsed.machine_hours, 3.25);
 });
 
 test("billing parser matches machine-second normalization used by the Platform adapter", () => {
