@@ -73,6 +73,32 @@ v0.3 incorporates the reproduced findings:
 
 Post-fix local gate: **48/48 passing**. The verifier module reaches **100% branch-inclusive coverage** under the combined suite.
 
+## DDC Guard Sweep v1
+
+The review also exposed a methodology gap: a green suite does not establish that each invariant-enforcing guard is actually defended by a test. `tools/ddc_guard_sweep.py` is our hardened implementation of refusal-guard mutation testing.
+
+Its measurement unit is stated explicitly: an `if` whose body raises, or directly returns a `ClosureResult` expression containing no `VERIFIED` symbol. New mutation classes must use separately named units rather than silently changing the count.
+
+Hardening properties:
+
+- the canonical checkout is never edited;
+- every baseline and mutant run uses a fresh temporary filesystem copy;
+- targets are bound by AST fingerprint plus exact source span rather than positional enumeration;
+- only the guard expression is replaced by `False`;
+- UTF-8 AST byte offsets are converted safely before text replacement;
+- nested functions/classes are not misclassified as part of an enclosing guard;
+- Python bytecode and pytest caches are excluded/disabled;
+- each outcome is repeated at least twice;
+- timeout, error, nondeterminism, or a silent mutant all fail the gate;
+- test subprocesses are run without a shell and timed-out POSIX process groups are killed;
+- symlinks are refused by default so a project snapshot cannot silently expand outside its declared root;
+- the original source SHA-256 is checked before and after the sweep;
+- machine-readable evidence stores result/output hashes rather than potentially sensitive test logs.
+
+This is **not an OS security sandbox**. The caller-supplied test command retains the operating-system/network capabilities of the environment in which the sweep is invoked. Use the narrowest practical project root and do not pass secrets to the test command.
+
+The tool's local self-gate is **7/7 passing**, including positive and negative integration cases, source-preservation checks, UTF-8 source-span handling, nested-scope classification, and a case proving that a literal string containing `VERIFIED` cannot hide a refusal guard.
+
 ## Scope boundary
 
 This prototype does **not** modify TRACE wire format, treat resolved references as attested truth, invalidate TRACE because a reference cannot be resolved, or verify TRACE signatures itself. It remains a composition layer.
