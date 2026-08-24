@@ -25,7 +25,7 @@ It deliberately keeps two results separate:
 ## Candidate composition
 
 ```text
-AuthorizationContext/0.1
+AuthorizationContext/0.2
   decision_id
   action_digest
   predecessor_digest
@@ -44,7 +44,7 @@ TRACE Trust Record ---------> independent runtime attestation
         +---- approval-outcome reference
         |
         v
-ObservedTransition/0.1
+ObservedTransition/0.2
 
         |
         v
@@ -69,3 +69,9 @@ This prototype does **not**:
 - claim that all application state can or should be represented by TRACE.
 
 It is intentionally a composition layer.
+
+## v0.2 DDC hardening
+
+The post-build DDC audit found that v0.1 could over-promote matching but unverified external objects to `VERIFIED`. v0.2 closes that evidence-inflation path and adds ambiguity rejection, policy-basis binding, strict artifact validation, independent evidence-authenticity gates, approval-profile handling, constrained canonicalization, and expanded adversarial coverage.
+
+Local gate: **20/20 tests passing**.
