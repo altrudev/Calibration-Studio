@@ -34,8 +34,6 @@ def _validate_canonical_value(obj: Any) -> None:
         if abs(obj) > MAX_SAFE_INTEGER:
             raise TypeError('AuthorizationContext/0.3 integer exceeds interoperable JSON safe range')
         return
-    if isinstance(obj, float):
-        raise TypeError('AuthorizationContext/0.3 forbids floating-point values')
     if isinstance(obj, dict):
         for k, v in obj.items():
             if not isinstance(k, str):
