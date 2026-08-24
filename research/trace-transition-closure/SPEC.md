@@ -1,69 +1,33 @@
-# AuthorizationContext/0.1 — Informative Prototype
+# Authorization-to-Transition Closure Prototype v0.2
 
-## Goal
+Status: experimental / informative. This does not modify TRACE validity.
 
-Bind an authorization decision to the state and scope on which it depended, then independently check whether execution remained within that envelope.
+## DDC assurance boundary
 
-## AuthorizationContext/0.1
+TRACE attestation, external authorization truth, observed-transition truth, and transition closure are separate claims. A TRACE `reference` is a signed pointer, not proof that the referenced object is true. Therefore this verifier cannot return `VERIFIED` unless the caller has independently verified both the authorization artifact and the observed-transition evidence.
 
-Required fields:
+## AuthorizationContext/0.2
 
-- `type`: `AuthorizationContext/0.1`
-- `decision_id`: stable authorization decision identifier
-- `action_digest`: digest identifying the authorized action
-- `predecessor_digest`: digest of the state/evidence snapshot evaluated for authorization
-- `policy_digest`: digest of the policy basis used for the decision
-- `allowed_resources`: finite set of resources the action may affect
-- `allowed_effects`: finite set of effect classes the action may produce
-- `not_before`: integer Unix time
-- `expires_at`: integer Unix time
+Required: `decision_id`, `action_digest`, `predecessor_digest`, `policy_digest`, non-empty `allowed_resources`, non-empty `allowed_effects`, `not_before`, and `expires_at`. Optional `expected_successor_digest` permits exact-successor checking.
 
-Optional:
+The context digest binds the exact authorization basis. The TRACE record's `policy.bundle_hash` must equal `policy_digest`; otherwise closure fails. Multiple `authorized-intent` references are treated as ambiguous, never first-match-wins.
 
-- `expected_successor_digest`: if the authorizer approved an exact successor
-- `metadata`: non-authoritative descriptive data
+## Results
 
-## TRACE binding
+- `VERIFIED`: no contradiction and both external evidence classes were independently verified.
+- `FAILED`: available evidence establishes a contradiction such as stale predecessor, policy mismatch, scope/effect expansion, digest tampering, expiry, action mismatch, or successor mismatch.
+- `INDETERMINATE`: evidence or semantics required for a closure claim are missing, unresolved, ambiguous, unsupported, or not independently verified.
 
-A TRACE Trust Record may carry an assurance-neutral reference:
+`trace_attestation` is reported separately and never rewritten by this layer.
 
-```json
-{
-  "rel": "authorized-intent",
-  "id": "decision-123",
-  "resolver": "https://authority.example",
-  "digest": "sha256:<AuthorizationContext digest>"
-}
-```
+## Canonicalization
 
-The TRACE record attests that it points to this reference. It does not attest the truth of the referenced object.
+AuthorizationContext/0.2 uses a deliberately constrained deterministic JSON encoding: no floats and ASCII object keys at every nesting level. This is not represented as RFC 8785 and is not TRACE signature canonicalization.
 
-For this closure profile, a digest is required to produce `VERIFIED`. If the reference is resolvable but lacks a digest, closure is `INDETERMINATE`, not `FAILED`.
+## Approval profile
 
-## ObservedTransition/0.1
-
-Required:
-
-- `type`: `ObservedTransition/0.1`
-- `decision_id`
-- `action_digest`
-- `predecessor_digest`
-- `successor_digest`
-- `touched_resources`
-- `observed_effects`
-- `executed_at`
-
-## Closure results
-
-`VERIFIED`
-: The reference digest matches the supplied authorization context; decision, action and predecessor match; execution occurred inside the validity window; touched resources and effects are subsets of the authorized envelope; and an exact successor matches when one was declared.
-
-`FAILED`
-: Evidence is present and establishes a contradiction: digest mismatch, stale predecessor, action mismatch, expired/not-yet-valid execution, scope expansion, effect expansion, decision mismatch, or exact-successor mismatch.
-
-`INDETERMINATE`
-: Evidence required to make a closure claim is absent or unresolved. This must not be coerced into either authorization success or failure.
+When `require_approval_outcome=True`, exactly one TRACE `approval-outcome` reference must also exist. This prototype checks presence/ambiguity only; verification of the approval artifact itself remains external and must not be inferred from the pointer.
 
 ## DDC-derived invariant
 
-Authority is bound to the decision basis that existed when it was granted. Repetition, nominal action identity, model confidence, or successful execution does not silently create authority for a changed predecessor or expanded transition.
+Authority remains bound to the decision basis on which it was granted. A matching nominal action, successful execution, repeated execution, or a valid TRACE reference does not create authority for a changed predecessor, changed policy basis, expanded resource scope, expanded effect envelope, or unverified external evidence.
