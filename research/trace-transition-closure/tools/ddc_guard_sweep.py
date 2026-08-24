@@ -53,7 +53,8 @@ def validate_tree(project,max_files=5000,max_bytes=50*1024*1024):
         if fc>max_files:raise RuntimeError('project file-count limit exceeded')
         if tb>max_bytes:raise RuntimeError('project byte-size limit exceeded')
     return fc,tb
-def tree_digest(project):
+def tree_digest(project,validate=True):
+    if validate:validate_tree(project)
     h=hashlib.sha256()
     for p,rel in entries(project):
         if p.is_file():
@@ -61,12 +62,12 @@ def tree_digest(project):
     return h.hexdigest()
 def make_snapshot(project,max_files=5000,max_bytes=50*1024*1024):
     fc,tb=validate_tree(project,max_files,max_bytes)
-    before=tree_digest(project)
+    before=tree_digest(project,validate=False)
     parent=Path(tempfile.mkdtemp(prefix='ddc-snap-'));snap=parent/'snapshot'
     shutil.copytree(project,snap,ignore=shutil.ignore_patterns('.git','__pycache__','.pytest_cache','*.pyc','*.pyo'))
     validate_tree(snap,max_files,max_bytes)
-    snap_digest=tree_digest(snap)
-    after=tree_digest(project)
+    snap_digest=tree_digest(snap,validate=False)
+    after=tree_digest(project,validate=False)
     if not (before==snap_digest==after):
         shutil.rmtree(parent,ignore_errors=True)
         raise RuntimeError('project changed while immutable snapshot was being created')
@@ -109,7 +110,7 @@ def main(argv=None):
     project=Path(ns.project_root).resolve();rel=Path(ns.source)
     if rel.is_absolute() or '..' in rel.parts:ap.error('--source must be a safe relative path')
     validate_tree(project)
-    before=tree_digest(project)
+    before=tree_digest(project,validate=False)
     if ns.json_out:
         jout=Path(ns.json_out).resolve()
         if jout==project or project in jout.parents:
