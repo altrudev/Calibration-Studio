@@ -54,9 +54,9 @@ The implementation uses only the Python standard library.
 
 ## External review lineage
 
-After v0.2, GitHub contributor `lywinged` independently cloned and ran PR #7, reproduced the 20/20 gate, exercised the TRACE/PIC bridge, and identified missing test guards plus six additional implementation edge cases. Their original 12-test artifact is retained unchanged as `tests/test_missing_guards.py`; attribution and provenance are the PR #7 review thread, comment `#issuecomment-5394526168`.
+After v0.2, GitHub contributor `lywinged` independently cloned and ran PR #7, reproduced the 20/20 gate, exercised the TRACE/PIC bridge, and identified missing test guards plus six additional implementation edge cases. Their original 12-test artifact is retained unchanged as `tests/test_missing_guards.py`; attribution and provenance are the PR #7 review thread.
 
-The rebuilt mutation script they supplied is treated as a description of method, not as the original historical artifact, because the original container was reclaimed. We do not conflate those provenance classes.
+A later independent run reproduced the expanded suite and found one mutation-equivalent float guard plus a setup friction point: a virtual environment inside the measured project root is normally symlink-heavy and therefore trips the sweep's symlink refusal. Those findings drove the v1.1 instrument hardening below.
 
 ## v0.3 external-review hardening
 
@@ -71,33 +71,48 @@ v0.3 incorporates the reproduced findings:
 - context integers are bounded to `2^53 - 1` for cross-language interoperability;
 - the trust-composition rule is explicit: closure cannot be consumed independently of valid TRACE attestation covering `references`.
 
-Post-fix local gate: **48/48 passing**. The verifier module reaches **100% branch-inclusive coverage** under the combined suite.
+The redundant float-specific refusal guard was removed rather than making its error-message wording part of the security contract. Floats remain rejected by the generic unsupported-value path.
 
-## DDC Guard Sweep v1
+## DDC Guard Sweep v1.1
 
-The review also exposed a methodology gap: a green suite does not establish that each invariant-enforcing guard is actually defended by a test. `tools/ddc_guard_sweep.py` is our hardened implementation of refusal-guard mutation testing.
+A green suite does not establish that each invariant-enforcing guard is actually defended by a test. `tools/ddc_guard_sweep.py` is a hardened refusal-guard mutation instrument.
 
-Its measurement unit is stated explicitly: an `if` whose body raises, or directly returns a `ClosureResult` expression containing no `VERIFIED` symbol. New mutation classes must use separately named units rather than silently changing the count.
+Its current measurement unit is deliberately narrow and machine-recorded:
 
-Hardening properties:
+`direct-refusal-if: immediate body directly raises or directly returns a non-VERIFIED ClosureResult`
 
+The tool also reports mutation classes it does **not** currently measure, including helper-call refusals, `match/case`, ternaries, boolean short-circuit policy, and `reasons.append`-only sites. A mutation count without this unit definition should not be treated as a reproducible measurement.
+
+### v1.1 hardening
+
+- one immutable project snapshot is created before baseline/mutant execution;
+- the project tree is hashed before snapshotting, the snapshot is hashed, and the project is hashed again; all three must match;
+- every mutant is derived from that exact snapshot, so all mutants share one predecessor tree;
 - the canonical checkout is never edited;
-- every baseline and mutant run uses a fresh temporary filesystem copy;
-- targets are bound by AST fingerprint plus exact source span rather than positional enumeration;
-- only the guard expression is replaced by `False`;
-- UTF-8 AST byte offsets are converted safely before text replacement;
-- nested functions/classes are not misclassified as part of an enclosing guard;
-- Python bytecode and pytest caches are excluded/disabled;
-- each outcome is repeated at least twice;
-- timeout, error, nondeterminism, or a silent mutant all fail the gate;
-- test subprocesses are run without a shell and timed-out POSIX process groups are killed;
-- symlinks are refused by default so a project snapshot cannot silently expand outside its declared root;
-- the original source SHA-256 is checked before and after the sweep;
-- machine-readable evidence stores result/output hashes rather than potentially sensitive test logs.
+- mutation targets use AST fingerprint + exact source span rather than positional enumeration;
+- only the guard expression is replaced with `False`;
+- refusal classification uses the immediate body only, avoiding outer-container/inner-guard double counting;
+- symlinks and non-regular filesystem objects are rejected before hashing/copying;
+- project file-count and byte-size limits bound snapshot growth;
+- keep virtual environments and symlinked dependencies **outside `--project-root`**;
+- `--json-out` must also be outside `--project-root`, so writing evidence cannot mutate the measured predecessor after the gate declares it unchanged;
+- the child environment is an allow-list rather than inheriting the full parent environment;
+- raw test output is not retained; SHA-256 output hashes are stored instead;
+- every outcome is repeated; `SILENT`, `NONDETERMINISTIC`, `TIMEOUT`, and `ERROR` all fail the gate;
+- timed-out POSIX process groups are killed;
+- machine-readable evidence preserves baseline results, each mutant identity/outcome, snapshot hash, canonical tree hashes, resolved executable, and a hash of the test command.
 
-This is **not an OS security sandbox**. The caller-supplied test command retains the operating-system/network capabilities of the environment in which the sweep is invoked. Use the narrowest practical project root and do not pass secrets to the test command.
+The instrument is also tested by deliberate self-mutation of critical behavior, including environment scrubbing and timeout classification.
 
-The tool's local self-gate is **10/10 passing**. It covers positive and negative integration cases, canonical-source preservation, UTF-8 source spans, nested-scope classification, false `VERIFIED` text, source-path escape refusal, symlink-boundary refusal, and the rule that timeouts are never credited as successful mutation detection.
+### Current DDC gate
+
+The local post-build gate used an independently hashed immutable snapshot and was run twice. Both runs produced the same snapshot hash, the same direct-refusal unit count, and the same result: **20 direct refusal guards, 20 detected, 0 silent, gate PASS**.
+
+The broader local hardening suite passed **62/62** tests before publication of v1.1. These 62 are the local hardening corpus used for this revision; the repository also retains the independently contributed test artifact separately.
+
+## Security boundary
+
+DDC Guard Sweep is **not an OS or network sandbox**. The caller-supplied test command still has the operating-system and network capabilities of the account/environment running it. Use an isolated execution environment for untrusted test code, use the narrowest practical `--project-root`, keep secrets out of the test process, and keep virtual environments outside the measured root.
 
 ## Scope boundary
 
