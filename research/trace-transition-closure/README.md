@@ -2,50 +2,42 @@
 
 **Status:** experimental / informative; not a TRACE normative change.
 
-This prototype tests a narrow gap discussed around `agentrust-io/trace-spec#191` after TRACE added the assurance-neutral `references` mechanism in #197.
+This prototype tests the transition-closure gap discussed around `agentrust-io/trace-spec#191`, composed with TRACE's assurance-neutral `references` mechanism from #197.
 
-TRACE can attest a runtime record and can now point to an external `authorized-intent` or `approval-outcome`. This prototype asks a different question:
+TRACE can attest a runtime record and point to external `authorized-intent` / `approval-outcome` facts. This prototype asks a separate question:
 
-> Did the recorded execution occur against the same authorization context the approver evaluated, and did the observed transition remain inside the authority/resource/mutation envelope that was granted?
+> Did execution occur against the same authorization context the decision-maker evaluated, and did the resulting transition stay inside the granted policy, resource, effect, time, and predecessor envelope?
 
-It deliberately keeps two results separate:
+## Core boundary
 
-- **TRACE attestation validity** — belongs to TRACE and is not redefined here.
-- **Authorization-to-transition closure** — `VERIFIED`, `FAILED`, or `INDETERMINATE`.
+- TRACE attestation validity is independent.
+- External evidence authenticity is independent.
+- Authorization-to-transition closure is `VERIFIED`, `FAILED`, or `INDETERMINATE`.
+- A closure result is never a substitute for TRACE signature/attestation verification.
 
-## Core distinctions
+A relying consumer should require all three:
 
-- Approval validity != approval consumption
-- Approval consumption != execution validity
-- Execution validity != transition validity
-- Action identity != authorization context
-- Same nominal action != same authorized transition
-- TRACE reference != attested truth of the referenced object
+`valid TRACE attestation covering references AND closure VERIFIED AND external evidence verified`
 
 ## Candidate composition
 
 ```text
-AuthorizationContext/0.2
+AuthorizationContext/0.3
   decision_id
   action_digest
   predecessor_digest
-  resource_scope
-  mutation_envelope
   policy_digest
-  validity
-
+  resource/effect envelope
+  validity window
         |
-        | digest-bound TRACE reference:
-        | rel = authorized-intent
+        | digest-bound authorized-intent reference
         v
-
-TRACE Trust Record ---------> independent runtime attestation
+TRACE Trust Record ----------------> independent TRACE attestation
         |
-        +---- approval-outcome reference
+        +---- approval-outcome reference (optional profile)
         |
         v
-ObservedTransition/0.2
-
+ObservedTransition/0.3
         |
         v
 Closure verifier
@@ -55,23 +47,32 @@ Closure verifier
 ## Run
 
 ```bash
-python -m unittest discover -s research/trace-transition-closure/tests -v
+python -m pytest research/trace-transition-closure/tests/ -q
 ```
 
 The implementation uses only the Python standard library.
 
+## External review lineage
+
+After v0.2, GitHub contributor `lywinged` independently cloned and ran PR #7, reproduced the 20/20 gate, exercised the TRACE/PIC bridge, and identified missing test guards plus six additional implementation edge cases. Their original 12-test artifact is retained unchanged as `tests/test_missing_guards.py`; attribution and provenance are the PR #7 review thread, comment `#issuecomment-5394526168`.
+
+The rebuilt mutation script they supplied is treated as a description of method, not as the original historical artifact, because the original container was reclaimed. We do not conflate those provenance classes.
+
+## v0.3 external-review hardening
+
+v0.3 incorporates the reproduced findings:
+
+- boolean timestamps no longer pass as integers;
+- authorization validity is half-open: `not_before <= executed_at < expires_at`;
+- zero-width windows are rejected;
+- a proven contradiction cannot be demoted to `INDETERMINATE` by later missing evidence;
+- TRACE-compatible lowercase SHA-256 and SHA-384 reference digests are supported;
+- malformed `references` are diagnosed separately from absent references;
+- context integers are bounded to `2^53 - 1` for cross-language interoperability;
+- the trust-composition rule is explicit: closure cannot be consumed independently of valid TRACE attestation covering `references`.
+
+Post-fix local gate: **48/48 passing**. The verifier module reaches **100% branch-inclusive coverage** under the combined suite.
+
 ## Scope boundary
 
-This prototype does **not**:
-- modify TRACE wire format;
-- assert that a resolved TRACE `reference` becomes attested evidence;
-- invalidate a TRACE Trust Record when an external reference cannot be resolved;
-- claim that all application state can or should be represented by TRACE.
-
-It is intentionally a composition layer.
-
-## v0.2 DDC hardening
-
-The post-build DDC audit found that v0.1 could over-promote matching but unverified external objects to `VERIFIED`. v0.2 closes that evidence-inflation path and adds ambiguity rejection, policy-basis binding, strict artifact validation, independent evidence-authenticity gates, approval-profile handling, constrained canonicalization, and expanded adversarial coverage.
-
-Local gate: **20/20 tests passing**.
+This prototype does **not** modify TRACE wire format, treat resolved references as attested truth, invalidate TRACE because a reference cannot be resolved, or verify TRACE signatures itself. It remains a composition layer.
