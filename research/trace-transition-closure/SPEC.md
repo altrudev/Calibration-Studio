@@ -1,33 +1,39 @@
-# Authorization-to-Transition Closure Prototype v0.2
+# Authorization-to-Transition Closure Prototype v0.3
 
 Status: experimental / informative. This does not modify TRACE validity.
 
-## DDC assurance boundary
+## Assurance boundary
 
-TRACE attestation, external authorization truth, observed-transition truth, and transition closure are separate claims. A TRACE `reference` is a signed pointer, not proof that the referenced object is true. Therefore this verifier cannot return `VERIFIED` unless the caller has independently verified both the authorization artifact and the observed-transition evidence.
+TRACE attestation, external authorization truth, observed-transition truth, and transition closure are separate claims. A TRACE `reference` is a signed pointer, not proof that the referenced object is true. `VERIFIED` is unavailable unless the caller independently verifies both the authorization artifact and observed-transition evidence.
 
-## AuthorizationContext/0.2
+A consumer must compose the results rather than read closure alone:
 
-Required: `decision_id`, `action_digest`, `predecessor_digest`, `policy_digest`, non-empty `allowed_resources`, non-empty `allowed_effects`, `not_before`, and `expires_at`. Optional `expected_successor_digest` permits exact-successor checking.
+`trusted transition = valid TRACE attestation covering references AND closure VERIFIED AND external evidence verified`
 
-The context digest binds the exact authorization basis. The TRACE record's `policy.bundle_hash` must equal `policy_digest`; otherwise closure fails. Multiple `authorized-intent` references are treated as ambiguous, never first-match-wins.
+The `trace_attestation` parameter remains an externally supplied result in this prototype; this layer does not verify TRACE signatures itself.
+
+## AuthorizationContext/0.3
+
+Required: `decision_id`, `action_digest`, `predecessor_digest`, `policy_digest`, non-empty `allowed_resources`, non-empty `allowed_effects`, `not_before`, and `expires_at`. Optional `expected_successor_digest` enables exact-successor checking.
+
+Time uses a half-open interval: `not_before <= executed_at < expires_at`. `expires_at` must be strictly greater than `not_before`. Booleans are not integers for this profile. Integers must be non-negative and at most `2^53 - 1` to stay within an interoperable JSON integer domain.
+
+The TRACE record's `policy.bundle_hash` must equal `policy_digest`; otherwise closure fails. Multiple `authorized-intent` references are ambiguous and never resolved by ordering.
+
+## Digest and canonicalization rules
+
+Reference digests follow TRACE's lowercase digest syntax for `sha256` and `sha384`. The AuthorizationContext digest is computed with the algorithm named by the TRACE reference.
+
+AuthorizationContext/0.3 uses constrained deterministic JSON: no floats, no booleans as values, integers limited to the interoperable safe range, and ASCII object keys at every nesting level. This is **not** represented as RFC 8785 and is not TRACE signature canonicalization.
 
 ## Results
 
 - `VERIFIED`: no contradiction and both external evidence classes were independently verified.
-- `FAILED`: available evidence establishes a contradiction such as stale predecessor, policy mismatch, scope/effect expansion, digest tampering, expiry, action mismatch, or successor mismatch.
-- `INDETERMINATE`: evidence or semantics required for a closure claim are missing, unresolved, ambiguous, unsupported, or not independently verified.
+- `FAILED`: available evidence establishes a contradiction, including stale predecessor, policy mismatch, digest tampering, scope/effect expansion, expiry, action mismatch, decision mismatch, or successor mismatch.
+- `INDETERMINATE`: evidence or semantics required for closure are missing, unresolved, malformed, ambiguous, unsupported, or not independently verified.
 
-`trace_attestation` is reported separately and never rewritten by this layer.
-
-## Canonicalization
-
-AuthorizationContext/0.2 uses a deliberately constrained deterministic JSON encoding: no floats and ASCII object keys at every nesting level. This is not represented as RFC 8785 and is not TRACE signature canonicalization.
+Once a contradiction has been established, later missing evidence does not demote it to `INDETERMINATE`; both facts are retained in the reasons and the result remains `FAILED`.
 
 ## Approval profile
 
-When `require_approval_outcome=True`, exactly one TRACE `approval-outcome` reference must also exist. This prototype checks presence/ambiguity only; verification of the approval artifact itself remains external and must not be inferred from the pointer.
-
-## DDC-derived invariant
-
-Authority remains bound to the decision basis on which it was granted. A matching nominal action, successful execution, repeated execution, or a valid TRACE reference does not create authority for a changed predecessor, changed policy basis, expanded resource scope, expanded effect envelope, or unverified external evidence.
+When `require_approval_outcome=True`, exactly one TRACE `approval-outcome` reference must exist. Verification of the approval artifact itself remains external and must not be inferred from the pointer.
