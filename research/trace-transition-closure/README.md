@@ -97,7 +97,7 @@ Hardening properties:
 
 This is **not an OS security sandbox**. The caller-supplied test command retains the operating-system/network capabilities of the environment in which the sweep is invoked. Use the narrowest practical project root and do not pass secrets to the test command.
 
-The tool's local self-gate is **7/7 passing**, including positive and negative integration cases, source-preservation checks, UTF-8 source-span handling, nested-scope classification, and a case proving that a literal string containing `VERIFIED` cannot hide a refusal guard.
+The tool's local self-gate is **10/10 passing**. It covers positive and negative integration cases, canonical-source preservation, UTF-8 source spans, nested-scope classification, false `VERIFIED` text, source-path escape refusal, symlink-boundary refusal, and the rule that timeouts are never credited as successful mutation detection.
 
 ## Scope boundary
 
