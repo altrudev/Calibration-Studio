@@ -1,35 +1,42 @@
 {
   "authorization_context": {
-    "type": "AuthorizationContext/0.1",
+    "type": "AuthorizationContext/0.2",
     "decision_id": "decision-123",
-    "action_digest": "sha256:action",
-    "predecessor_digest": "sha256:state-s0",
-    "policy_digest": "sha256:policy-p1",
+    "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "predecessor_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "allowed_resources": ["account:operating", "vendor:42"],
     "allowed_effects": ["ledger-debit", "ledger-credit"],
     "not_before": 1000,
     "expires_at": 2000,
-    "expected_successor_digest": "sha256:state-s1"
+    "expected_successor_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   },
   "trace_record_fragment": {
     "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+    "policy": {
+      "bundle_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
     "references": [
       {
         "rel": "authorized-intent",
         "id": "decision-123",
         "resolver": "https://authority.example",
-        "digest": "sha256:replace-with-AuthorizationContext-digest"
+        "digest": "sha256:4ec740f4ac29e75bd5a749f3c8257f9a342bcaa3cb4ba442ae41f041b3db85b4"
       }
     ]
   },
   "observed_transition": {
-    "type": "ObservedTransition/0.1",
+    "type": "ObservedTransition/0.2",
     "decision_id": "decision-123",
-    "action_digest": "sha256:action",
-    "predecessor_digest": "sha256:state-s0",
-    "successor_digest": "sha256:state-s1",
+    "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "predecessor_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "successor_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "touched_resources": ["account:operating", "vendor:42"],
     "observed_effects": ["ledger-debit", "ledger-credit"],
     "executed_at": 1500
+  },
+  "closure_preconditions": {
+    "authorization_evidence_verified": true,
+    "observation_evidence_verified": true
   }
 }
