@@ -1,6 +1,6 @@
 {
   "authorization_context": {
-    "type": "AuthorizationContext/0.2",
+    "type": "AuthorizationContext/0.3",
     "decision_id": "decision-123",
     "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "predecessor_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -13,20 +13,11 @@
   },
   "trace_record_fragment": {
     "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
-    "policy": {
-      "bundle_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    },
-    "references": [
-      {
-        "rel": "authorized-intent",
-        "id": "decision-123",
-        "resolver": "https://authority.example",
-        "digest": "sha256:4ec740f4ac29e75bd5a749f3c8257f9a342bcaa3cb4ba442ae41f041b3db85b4"
-      }
-    ]
+    "policy": {"bundle_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+    "references": [{"rel": "authorized-intent", "id": "decision-123", "resolver": "https://authority.example", "digest": "sha256:e193dfba1d25b45e708f1c663721726d0c70b01aa2e0b30c2de257c2231ab9b3"}]
   },
   "observed_transition": {
-    "type": "ObservedTransition/0.2",
+    "type": "ObservedTransition/0.3",
     "decision_id": "decision-123",
     "action_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "predecessor_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -35,8 +26,5 @@
     "observed_effects": ["ledger-debit", "ledger-credit"],
     "executed_at": 1500
   },
-  "closure_preconditions": {
-    "authorization_evidence_verified": true,
-    "observation_evidence_verified": true
-  }
+  "closure_preconditions": {"authorization_evidence_verified": true, "observation_evidence_verified": true}
 }
