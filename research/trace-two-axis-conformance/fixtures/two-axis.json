@@ -1,0 +1,9 @@
+[
+  ["AXIS-A", {"required_floor":"surface","verified_depth":"surface","evidence_state":"pass"}, {"requirement":"required","evidence_state":"verified"}],
+  ["AXIS-B", {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"}, {"requirement":"none","evidence_state":"absent"}],
+  ["AXIS-C", {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"}, {"requirement":"required","evidence_state":"absent"}],
+  ["AXIS-D", {"required_floor":"transitive","verified_depth":"builder","evidence_state":"unresolved"}, {"requirement":"required","evidence_state":"verified"}],
+  ["AXIS-E", {"required_floor":"builder","verified_depth":"builder","evidence_state":"contradicted"}, {"requirement":"required","evidence_state":"verified"}],
+  ["AXIS-F", {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"}, {"requirement":"required","evidence_state":"invalid"}],
+  ["CONTROL-NEGATIVE-OUTCOME", {"required_floor":"builder","verified_depth":"builder","evidence_state":"pass"}, {"requirement":"required","evidence_state":"valid_negative"}]
+]
