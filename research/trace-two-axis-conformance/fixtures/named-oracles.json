@@ -1,0 +1,44 @@
+[
+  {
+    "id": "AXIS-A",
+    "provenance": {"required_floor":"surface","verified_depth":"surface","evidence_state":"pass"},
+    "receipts": {"requirement":"required","evidence_state":"verified"},
+    "expected": {"provenance_depth_verified":"surface","provenance_result":"verified","action_receipts_result":"verified","overall_appraisal":"affirming","reasons":[]}
+  },
+  {
+    "id": "AXIS-B",
+    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
+    "receipts": {"requirement":"none","evidence_state":"absent"},
+    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"not_required","overall_appraisal":"affirming","reasons":[]}
+  },
+  {
+    "id": "AXIS-C",
+    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
+    "receipts": {"requirement":"required","evidence_state":"absent"},
+    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"missing_required","overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_MISSING_REQUIRED"]}
+  },
+  {
+    "id": "AXIS-D",
+    "provenance": {"required_floor":"transitive","verified_depth":"builder","evidence_state":"unresolved"},
+    "receipts": {"requirement":"required","evidence_state":"verified"},
+    "expected": {"provenance_depth_verified":"builder","provenance_result":"unresolved","action_receipts_result":"verified","overall_appraisal":"contraindicated","reasons":["PROVENANCE_FLOOR_NOT_MET"]}
+  },
+  {
+    "id": "AXIS-E",
+    "provenance": {"required_floor":"builder","verified_depth":"builder","evidence_state":"contradicted"},
+    "receipts": {"requirement":"required","evidence_state":"verified"},
+    "expected": {"provenance_depth_verified":"builder","provenance_result":"contradicted","action_receipts_result":"verified","overall_appraisal":"contraindicated","reasons":["PROVENANCE_EVIDENCE_CONTRADICTED"]}
+  },
+  {
+    "id": "AXIS-F",
+    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
+    "receipts": {"requirement":"required","evidence_state":"invalid"},
+    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"invalid","overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_INVALID"]}
+  },
+  {
+    "id": "CONTROL-NEGATIVE-OUTCOME",
+    "provenance": {"required_floor":"builder","verified_depth":"builder","evidence_state":"pass"},
+    "receipts": {"requirement":"required","evidence_state":"valid_negative"},
+    "expected": {"provenance_depth_verified":"builder","provenance_result":"verified","action_receipts_result":"verified_negative_outcome","overall_appraisal":"affirming","reasons":[]}
+  }
+]
