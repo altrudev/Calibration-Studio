@@ -1,36 +1,54 @@
-# TRACE two-axis non-interference conformance — executable draft
+# TRACE two-axis non-interference conformance v0.2
 
 **Author:** Val Rukhaylo (`altrudev`)  
 **Status:** External/informative; not a normative TRACE schema proposal.
 
-This executable harness falsifies one narrow architectural failure mode from `agentrust-io/trace-spec#66`:
+This executable harness tests one narrow architectural property from `agentrust-io/trace-spec#66`:
 
-> changing action-receipt evidence must not rewrite supply-chain provenance accounting, and changing supply-chain provenance evidence must not rewrite action-receipt accounting.
+> Changing action-receipt evidence must not rewrite supply-chain provenance accounting, and changing supply-chain provenance evidence must not rewrite action-receipt accounting.
 
-Overall policy may compose both axes. Evidence accounting must remain truthful and separable.
+Overall appraisal policy may compose both axes. Evidence accounting must remain truthful and separable.
 
-## Three layers
+## v0.2 assurance layers
 
-1. Named reviewer-facing vectors.
-2. A deterministic finite cross-product asserting projection invariance in both directions.
-3. Six deliberately wrong cross-axis coupling mutants; every mutant must be killed.
+1. **Exact structured-output oracles** for the named reviewer-facing fixtures.
+2. **40-state deterministic cross-product**: five provenance states × eight receipt states.
+3. **Projection non-interference in both directions** across the complete modeled product.
+4. **Six implementation-level broken verifiers**, not post-hoc result rewrites.
+5. A mutation gate requiring every broken verifier to be killed by a semantic evidence difference.
 
-The mutants model receipt-from-provenance inference, provenance-from-receipt upgrades, reconstruction from a single success boolean, downgrade erasure, failure erasure, and contradiction laundering.
+The broken implementations model:
+
+- receipt success upgrading provenance depth;
+- provenance manufacturing receipt success;
+- reconstruction of both axes from one shared success boolean;
+- provenance downgrade erasing receipt evidence;
+- receipt failure erasing established provenance;
+- receipt success laundering a provenance contradiction.
+
+## Important distinction
+
+The non-interference property applies to the factual projections:
+
+```text
+fixed P, vary R => provenance_projection(P,R) stays unchanged
+fixed R, vary P => receipt_projection(P,R) stays unchanged
+```
+
+It does **not** require the overall appraisal to stay unchanged. A policy can legitimately combine the two independent evidence axes.
 
 ## Provenance / parallel work
 
 The action-issuance-versus-physical-outcome boundary is being explored independently in TRACE #66, including Akoaidev's proposed cyber-physical vectors. This harness does **not** claim that boundary as novel.
 
-`CONTROL-NEGATIVE-OUTCOME` is retained only as a control input proving that independently valid receipt evidence does not manufacture provenance or get rewritten by the other axis. The contribution here is **cross-axis non-interference plus a mutation gate**.
+`CONTROL-NEGATIVE-OUTCOME` is retained only as a compatibility/control input. The contribution here is the **cross-axis non-interference property and implementation-level mutation test**.
 
 ## Boundary
 
-This does not define final TRACE v1.0 field names, receipt cryptography, replay/freshness semantics, or physical-outcome evidence. It consumes abstract verifier outcomes solely to test architectural independence.
+This artifact does not define final TRACE v1.0 field names, receipt cryptography, replay/freshness semantics, physical-outcome evidence, or normative conformance requirements. It consumes abstract verifier outcomes solely to test the architectural independence property.
 
 ## Run
 
 ```bash
 python -B -m unittest discover -s tests -v
 ```
-
-The gate passes only if both projection-invariance directions hold and all committed cross-axis coupling mutants are killed.
