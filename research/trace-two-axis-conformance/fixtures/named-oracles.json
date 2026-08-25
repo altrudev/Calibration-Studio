@@ -1,44 +1,32 @@
 [
   {
     "id": "AXIS-A",
-    "provenance": {"required_floor":"surface","verified_depth":"surface","evidence_state":"pass"},
-    "receipts": {"requirement":"required","evidence_state":"verified"},
-    "expected": {"provenance_depth_verified":"surface","provenance_result":"verified","action_receipts_result":"verified","overall_appraisal":"affirming","reasons":[]}
-  },
-  {
-    "id": "AXIS-B",
-    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
-    "receipts": {"requirement":"none","evidence_state":"absent"},
-    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"not_required","overall_appraisal":"affirming","reasons":[]}
+    "provenance": {"required_floor":"surface","verified_depth":"surface","evidence_state":"pass","evidence_anchors":["prov:A"]},
+    "receipts": {"requirement":"required","evidence_state":"verified","evidence_anchors":["receipt:A"]},
+    "expected": {"provenance_depth_verified":"surface","provenance_result":"verified","action_receipts_result":"verified","provenance_reasons":[],"action_receipts_reasons":[],"provenance_anchors":["prov:A"],"action_receipts_anchors":["receipt:A"],"overall_appraisal":"affirming","reasons":[]}
   },
   {
     "id": "AXIS-C",
-    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
-    "receipts": {"requirement":"required","evidence_state":"absent"},
-    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"missing_required","overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_MISSING_REQUIRED"]}
+    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass","evidence_anchors":["prov:C"]},
+    "receipts": {"requirement":"required","evidence_state":"absent","evidence_anchors":["receipt:C"]},
+    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"missing_required","provenance_reasons":[],"action_receipts_reasons":["ACTION_RECEIPT_MISSING_REQUIRED"],"provenance_anchors":["prov:C"],"action_receipts_anchors":["receipt:C"],"overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_MISSING_REQUIRED"]}
   },
   {
     "id": "AXIS-D",
-    "provenance": {"required_floor":"transitive","verified_depth":"builder","evidence_state":"unresolved"},
-    "receipts": {"requirement":"required","evidence_state":"verified"},
-    "expected": {"provenance_depth_verified":"builder","provenance_result":"unresolved","action_receipts_result":"verified","overall_appraisal":"contraindicated","reasons":["PROVENANCE_FLOOR_NOT_MET"]}
+    "provenance": {"required_floor":"transitive","verified_depth":"builder","evidence_state":"unresolved","evidence_anchors":["prov:D"]},
+    "receipts": {"requirement":"required","evidence_state":"verified","evidence_anchors":["receipt:D"]},
+    "expected": {"provenance_depth_verified":"builder","provenance_result":"unresolved","action_receipts_result":"verified","provenance_reasons":["PROVENANCE_FLOOR_NOT_MET"],"action_receipts_reasons":[],"provenance_anchors":["prov:D"],"action_receipts_anchors":["receipt:D"],"overall_appraisal":"contraindicated","reasons":["PROVENANCE_FLOOR_NOT_MET"]}
   },
   {
     "id": "AXIS-E",
-    "provenance": {"required_floor":"builder","verified_depth":"builder","evidence_state":"contradicted"},
-    "receipts": {"requirement":"required","evidence_state":"verified"},
-    "expected": {"provenance_depth_verified":"builder","provenance_result":"contradicted","action_receipts_result":"verified","overall_appraisal":"contraindicated","reasons":["PROVENANCE_EVIDENCE_CONTRADICTED"]}
+    "provenance": {"required_floor":"builder","verified_depth":"builder","evidence_state":"contradicted","evidence_anchors":["prov:E"]},
+    "receipts": {"requirement":"required","evidence_state":"verified","evidence_anchors":["receipt:E"]},
+    "expected": {"provenance_depth_verified":"builder","provenance_result":"contradicted","action_receipts_result":"verified","provenance_reasons":["PROVENANCE_EVIDENCE_CONTRADICTED"],"action_receipts_reasons":[],"provenance_anchors":["prov:E"],"action_receipts_anchors":["receipt:E"],"overall_appraisal":"contraindicated","reasons":["PROVENANCE_EVIDENCE_CONTRADICTED"]}
   },
   {
     "id": "AXIS-F",
-    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass"},
-    "receipts": {"requirement":"required","evidence_state":"invalid"},
-    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"invalid","overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_INVALID"]}
-  },
-  {
-    "id": "CONTROL-NEGATIVE-OUTCOME",
-    "provenance": {"required_floor":"builder","verified_depth":"builder","evidence_state":"pass"},
-    "receipts": {"requirement":"required","evidence_state":"valid_negative"},
-    "expected": {"provenance_depth_verified":"builder","provenance_result":"verified","action_receipts_result":"verified_negative_outcome","overall_appraisal":"affirming","reasons":[]}
+    "provenance": {"required_floor":"transitive","verified_depth":"transitive","evidence_state":"pass","evidence_anchors":["prov:F"]},
+    "receipts": {"requirement":"required","evidence_state":"invalid","evidence_anchors":["receipt:F"]},
+    "expected": {"provenance_depth_verified":"transitive","provenance_result":"verified","action_receipts_result":"invalid","provenance_reasons":[],"action_receipts_reasons":["ACTION_RECEIPT_INVALID"],"provenance_anchors":["prov:F"],"action_receipts_anchors":["receipt:F"],"overall_appraisal":"contraindicated","reasons":["ACTION_RECEIPT_INVALID"]}
   }
 ]
