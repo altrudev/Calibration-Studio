@@ -1,104 +1,94 @@
-import json, pathlib, sys, unittest
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT/"src"), str(ROOT/"tools")]
-from two_axis import ProvenanceInput, ReceiptInput, verify_axes
+import json,pathlib,sys,unittest
+ROOT=pathlib.Path(__file__).resolve().parents[1]
+sys.path[:0]=[str(ROOT/"src"),str(ROOT/"tools")]
+from two_axis import *
 from broken_verifiers import BROKEN_VERIFIERS
 
-ORACLES = json.loads((ROOT/"fixtures/named-oracles.json").read_text())
-PROVENANCE_STATES = [
-    ProvenanceInput("surface","surface","pass"),
-    ProvenanceInput("builder","builder","pass"),
-    ProvenanceInput("transitive","transitive","pass"),
-    ProvenanceInput("transitive","builder","unresolved"),
-    ProvenanceInput("builder","builder","contradicted"),
+ORACLES=json.loads((ROOT/"fixtures/named-oracles.json").read_text())
+PS=[
+ ProvenanceInput("surface","surface","pass",("prov:surface",)),
+ ProvenanceInput("builder","builder","pass",("prov:builder",)),
+ ProvenanceInput("transitive","transitive","pass",("prov:transitive",)),
+ ProvenanceInput("transitive","builder","unresolved",("prov:unresolved",)),
+ ProvenanceInput("builder","builder","contradicted",("prov:contradicted",)),
+ ProvenanceInput("surface",None,"unresolved",("prov:no-depth",)),
 ]
-RECEIPT_STATES = [
-    ReceiptInput("none","absent"),
-    ReceiptInput("optional","absent"),
-    ReceiptInput("optional","unverified"),
-    ReceiptInput("required","verified"),
-    ReceiptInput("required","valid_negative"),
-    ReceiptInput("required","invalid"),
-    ReceiptInput("required","absent"),
-    ReceiptInput("required","unverified"),
+RS=[
+ ReceiptInput("none","absent",("receipt:none",)),
+ ReceiptInput("optional","absent",("receipt:optional-absent",)),
+ ReceiptInput("optional","unverified",("receipt:optional-unverified",)),
+ ReceiptInput("required","verified",("receipt:verified",)),
+ ReceiptInput("required","valid_negative",("receipt:negative",)),
+ ReceiptInput("required","invalid",("receipt:invalid",)),
+ ReceiptInput("required","absent",("receipt:missing",)),
+ ReceiptInput("required","unverified",("receipt:unverified",)),
 ]
 
-class ExactOracleTests(unittest.TestCase):
-    def test_oracle_artifact_is_static_data_not_generated_at_test_time(self):
-        raw = (ROOT/"fixtures/named-oracles.json").read_text()
-        self.assertNotIn("verify_axes", raw)
-        self.assertNotIn("python", raw.lower())
+def invariant_provenance_projection(verifier):
+    for p in PS:
+        base=provenance_projection(verifier(p,RS[0]))
+        for r in RS[1:]:
+            if provenance_projection(verifier(p,r)) != base:return False
+    return True
 
-    def test_named_fixtures_match_exact_structured_oracles(self):
-        for case in ORACLES:
-            with self.subTest(case=case["id"]):
-                got = verify_axes(
-                    ProvenanceInput(**case["provenance"]),
-                    ReceiptInput(**case["receipts"]),
-                ).to_dict()
-                self.assertEqual(case["expected"], got)
+def invariant_receipt_projection(verifier):
+    for r in RS:
+        base=receipt_projection(verifier(PS[0],r))
+        for p in PS[1:]:
+            if receipt_projection(verifier(p,r)) != base:return False
+    return True
 
-class CrossProductNonInterferenceTests(unittest.TestCase):
-    def test_exactly_40_admissible_cross_product_states(self):
-        self.assertEqual(40, len(PROVENANCE_STATES) * len(RECEIPT_STATES))
+def invariant_contradiction_preserved(verifier):
+    p=PS[4]
+    for r in (RS[3],RS[4]):
+        x=verifier(p,r)
+        if x.provenance_result!="contradicted":return False
+        if "PROVENANCE_EVIDENCE_CONTRADICTED" not in x.provenance_reasons:return False
+        if x.provenance_anchors != p.evidence_anchors:return False
+        if x.overall_appraisal != Overall.CONTRAINDICATED:return False
+    return True
 
-    def test_receipt_changes_do_not_rewrite_provenance_projection(self):
-        for p in PROVENANCE_STATES:
-            baseline = verify_axes(p, RECEIPT_STATES[0])
-            expected = (baseline.provenance_depth_verified, baseline.provenance_result)
-            for r in RECEIPT_STATES[1:]:
-                with self.subTest(provenance=p, receipts=r):
-                    got = verify_axes(p, r)
-                    self.assertEqual(expected, (got.provenance_depth_verified, got.provenance_result))
+NAMED_INVARIANT_FOR_MUTANT={
+ "receipt_success_upgrades_provenance":invariant_provenance_projection,
+ "provenance_manufactures_receipt_success":invariant_receipt_projection,
+ "shared_success_boolean_reconstructs_both":invariant_receipt_projection,
+ "provenance_downgrade_erases_receipts":invariant_receipt_projection,
+ "receipt_failure_erases_provenance":invariant_provenance_projection,
+ "receipt_success_launders_contradiction":invariant_contradiction_preserved,
+}
 
-    def test_provenance_changes_do_not_rewrite_receipt_projection(self):
-        for r in RECEIPT_STATES:
-            baseline = verify_axes(PROVENANCE_STATES[0], r)
-            expected = baseline.action_receipts_result
-            for p in PROVENANCE_STATES[1:]:
-                with self.subTest(provenance=p, receipts=r):
-                    self.assertEqual(expected, verify_axes(p, r).action_receipts_result)
+class ExactOracles(unittest.TestCase):
+ def test_hand_authored_oracles(self):
+  raw=(ROOT/"fixtures/named-oracles.json").read_text()
+  self.assertNotIn("verify_axes",raw)
+  for c in ORACLES:
+   got=verify_axes(ProvenanceInput(**c["provenance"]),ReceiptInput(**c["receipts"])).to_dict()
+   self.assertEqual(c["expected"],got)
 
-    def test_overall_appraisal_is_allowed_to_compose_axes(self):
-        p = ProvenanceInput("transitive","transitive","pass")
-        ok = verify_axes(p, ReceiptInput("required","verified"))
-        missing = verify_axes(p, ReceiptInput("required","absent"))
-        self.assertNotEqual(ok.overall_appraisal, missing.overall_appraisal)
-        self.assertEqual(ok.provenance_result, missing.provenance_result)
+class FullProduct(unittest.TestCase):
+ def test_48_states(self):self.assertEqual(48,len(PS)*len(RS))
+ def test_reference_provenance_projection_invariant(self):self.assertTrue(invariant_provenance_projection(verify_axes))
+ def test_reference_receipt_projection_invariant(self):self.assertTrue(invariant_receipt_projection(verify_axes))
+ def test_reference_contradiction_preserved(self):self.assertTrue(invariant_contradiction_preserved(verify_axes))
+ def test_overall_may_compose(self):
+  p=PS[2]; a=verify_axes(p,RS[3]); b=verify_axes(p,RS[6])
+  self.assertNotEqual(a.overall_appraisal,b.overall_appraisal)
+  self.assertEqual(provenance_projection(a),provenance_projection(b))
 
-class ImplementationMutationTests(unittest.TestCase):
-    def test_every_broken_verifier_is_killed_over_full_40_state_product(self):
-        survivors = {}
-        for name, broken in BROKEN_VERIFIERS.items():
-            killed_by = []
-            for p in PROVENANCE_STATES:
-                for r in RECEIPT_STATES:
-                    reference = verify_axes(p, r)
-                    mutant = broken(p, r)
-                    if mutant != reference:
-                        killed_by.append((p, r))
-            if not killed_by:
-                survivors[name] = killed_by
-        self.assertEqual({}, survivors)
+class CausalMutationGate(unittest.TestCase):
+ def test_every_mutant_violates_its_named_invariant(self):
+  self.assertEqual(set(BROKEN_VERIFIERS),set(NAMED_INVARIANT_FOR_MUTANT))
+  survivors={}
+  for name,mutant in BROKEN_VERIFIERS.items():
+   invariant=NAMED_INVARIANT_FOR_MUTANT[name]
+   if invariant(mutant):survivors[name]=invariant.__name__
+  self.assertEqual({},survivors)
 
-    def test_each_broken_verifier_changes_an_evidence_projection_or_launders_contradiction(self):
-        for name, broken in BROKEN_VERIFIERS.items():
-            semantic_difference = False
-            for p in PROVENANCE_STATES:
-                for r in RECEIPT_STATES:
-                    ref = verify_axes(p, r)
-                    mut = broken(p, r)
-                    if (
-                        ref.provenance_depth_verified != mut.provenance_depth_verified
-                        or ref.provenance_result != mut.provenance_result
-                        or ref.action_receipts_result != mut.action_receipts_result
-                        or (ref.provenance_result == "contradicted" and mut.overall_appraisal != ref.overall_appraisal)
-                    ):
-                        semantic_difference = True
-                        break
-                if semantic_difference:
-                    break
-            self.assertTrue(semantic_difference, name)
+ def test_axis_scoped_reasons_and_anchors_are_part_of_projection(self):
+  x=verify_axes(PS[4],RS[5])
+  self.assertEqual(("PROVENANCE_EVIDENCE_CONTRADICTED",),x.provenance_reasons)
+  self.assertEqual(("ACTION_RECEIPT_INVALID",),x.action_receipts_reasons)
+  self.assertEqual(PS[4].evidence_anchors,x.provenance_anchors)
+  self.assertEqual(RS[5].evidence_anchors,x.action_receipts_anchors)
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__=="__main__":unittest.main()
