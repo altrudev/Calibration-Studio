@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration-evaluator-result-0.1.schema.json",
+  "title": "Calibration evaluator score result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "protocol",
+    "corpus_id",
+    "evaluator",
+    "policy",
+    "evidence",
+    "metrics",
+    "decision",
+    "limitations"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "calibration-evaluator-result/0.1"
+    },
+    "corpus_id": {
+      "type": "string"
+    }
+  }
+}

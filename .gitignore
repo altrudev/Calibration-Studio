@@ -18,6 +18,8 @@ release/stage/
 
 # Calibration outputs
 calibration-*.json
+# Versioned evaluator-calibration exchange schemas are source, not calibration output.
+!schemas/calibration-evaluator-*.schema.json
 baseline*.json
 regression*.json
 repair*.json

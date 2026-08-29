@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration-evaluator-truth-0.1.schema.json",
+  "title": "Calibration evaluator ground truth",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "corpus_id",
+    "cases"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "calibration-evaluator-truth/0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "decision",
+          "severity",
+          "provenance"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "pass_with_limitations",
+              "fail",
+              "inconclusive",
+              "not_assessed"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "none",
+              "info",
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "reason_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "independent_of_evaluator"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "mechanical",
+                  "external",
+                  "specification",
+                  "retrospective"
+                ]
+              },
+              "reference": {
+                "type": "string"
+              },
+              "independent_of_evaluator": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

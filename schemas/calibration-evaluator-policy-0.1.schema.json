@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://altru.dev/schemas/calibration-evaluator-policy-0.1.schema.json",
+  "title": "Calibration evaluator qualification policy",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "protocol",
+    "id"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "calibration-evaluator-policy/0.1"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

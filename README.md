@@ -54,6 +54,7 @@ The Studio service itself binds to loopback only inside the Codespace. The local
 - Web/PWA, Browser Extension, API/Backend, CLI and Game adapters;
 - normalized observations and developer-owned calibration contracts;
 - immutable baselines and regression comparison;
+- independent-ground-truth evaluator calibration with blinded/retrospective separation and safety-weighted metrics;
 - longitudinal history and exact first-parent first-bad tracing;
 - continuous calibration gates;
 - repair scopes and repair verification;
